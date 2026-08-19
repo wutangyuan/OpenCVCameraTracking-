@@ -1,7 +1,7 @@
 using System.IO;
 using System.Text.Json;
 
-namespace OpenCVCameraTracking.WpfSample.Configuration;
+namespace OpenCVCameraTracking.Configuration;
 
 public static class SettingsStore
 {

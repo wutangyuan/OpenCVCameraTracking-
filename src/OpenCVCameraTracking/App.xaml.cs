@@ -1,8 +1,8 @@
 using System.Windows;
-using OpenCVCameraTracking.WpfSample.Configuration;
-using OpenCVCameraTracking.WpfSample.Localization;
+using OpenCVCameraTracking.Configuration;
+using OpenCVCameraTracking.Localization;
 
-namespace OpenCVCameraTracking.WpfSample;
+namespace OpenCVCameraTracking;
 
 public partial class App : Application
 {

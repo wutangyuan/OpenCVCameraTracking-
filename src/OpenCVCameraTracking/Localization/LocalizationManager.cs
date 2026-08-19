@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Windows;
 
-namespace OpenCVCameraTracking.WpfSample.Localization;
+namespace OpenCVCameraTracking.Localization;
 
 public static class LocalizationManager
 {

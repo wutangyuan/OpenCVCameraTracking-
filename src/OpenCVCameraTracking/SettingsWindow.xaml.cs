@@ -1,10 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
-using OpenCVCameraTracking.WpfSample.Configuration;
-using OpenCVCameraTracking.WpfSample.Localization;
+using OpenCVCameraTracking.Configuration;
+using OpenCVCameraTracking.Localization;
 
-namespace OpenCVCameraTracking.WpfSample;
+namespace OpenCVCameraTracking;
 
 public partial class SettingsWindow : Window
 {

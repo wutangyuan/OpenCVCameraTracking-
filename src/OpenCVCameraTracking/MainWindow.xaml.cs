@@ -10,11 +10,11 @@ using OpenCVCameraTracking.Core;
 using OpenCVCameraTracking.Core.Camera;
 using OpenCVCameraTracking.Core.Detection;
 using OpenCVCameraTracking.Core.Tracking;
-using OpenCVCameraTracking.WpfSample.Configuration;
-using OpenCVCameraTracking.WpfSample.Localization;
+using OpenCVCameraTracking.Configuration;
+using OpenCVCameraTracking.Localization;
 using Microsoft.Win32;
 
-namespace OpenCVCameraTracking.WpfSample;
+namespace OpenCVCameraTracking;
 
 public partial class MainWindow : Window
 {

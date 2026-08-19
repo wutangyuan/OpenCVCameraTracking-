@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace OpenCVCameraTracking.WpfSample.Configuration;
+namespace OpenCVCameraTracking.Configuration;
 
 public sealed class ApplicationSettings
 {

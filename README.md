@@ -1,7 +1,7 @@
 # OpenCVCameraTracking
 
 基于 `.NET 8 + WPF + OpenCvSharp` 的实时摄像头组件。核心采集、检测和跟踪逻辑位于
-`OpenCVCameraTracking.Core`，WPF 界面与设置管理位于 `OpenCVCameraTracking.WpfSample`。
+`OpenCVCameraTracking.Core`，WPF 界面与设置管理位于 `OpenCVCameraTracking`。
 
 ## 功能
 
@@ -24,10 +24,10 @@
 
 ```powershell
 dotnet restore OpenCVCameraTracking.slnx
-dotnet run --project src/OpenCVCameraTracking.WpfSample/OpenCVCameraTracking.WpfSample.csproj
+dotnet run --project src/OpenCVCameraTracking/OpenCVCameraTracking.csproj
 ```
 
-也可以在 Visual Studio 中打开 `OpenCVCameraTracking.slnx`，将 `OpenCVCameraTracking.WpfSample` 设为启动项目。
+也可以在 Visual Studio 中打开 `OpenCVCameraTracking.slnx`，将 `OpenCVCameraTracking` 设为启动项目。
 
 ## 人脸检测
 
@@ -119,7 +119,7 @@ rtsp://user:password@192.168.1.10:554/stream1
 保存后立即切换，不需要重新启动。资源位于：
 
 ```text
-src/OpenCVCameraTracking.WpfSample/Languages/
+src/OpenCVCameraTracking/Languages/
 ```
 
 增加语言时复制任意现有 `Strings.*.xaml`，翻译值并在 `LocalizationManager` 与语言下拉框中注册语言代码。
