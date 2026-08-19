@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OpenCVCameraTracking.Core/OpenCVCameraTracking.Core.csproj" />
+    <Project Path="src/OpenCVCameraTracking.WpfSample/OpenCVCameraTracking.WpfSample.csproj" />
+  </Folder>
+</Solution>
