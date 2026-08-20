@@ -12,6 +12,7 @@
 - 默认使用 OpenCV YuNet ONNX 进行人脸检测，保留 Haar 兼容模式。
 - 内置 YOLOX INT8 ONNX 动物检测模型，无需另外下载模型即可使用。
 - 支持自定义 YOLOv5/YOLOv8 ONNX 模型。
+- "人 + 动物"复合检测：YuNet 人脸与动物检测并发运行，两类目标同时显示并独立跟踪。
 - IoU 多目标关联、位置平滑和短时丢失保留，画面中显示稳定目标编号。
 - 设置窗口可管理多个网络视频流并记住默认选择。
 - 保存来源类型、检测模式、模型、检测阈值、语言和上次输入的网络地址。
@@ -62,6 +63,16 @@ bird, cat, dog, horse, sheep, cow, elephant, bear, zebra, giraffe
 - YOLOv5：`[1, 25200, 85]`
 - YOLOv8：`[1, 84, 8400]`
 - 带 NMS：`[1, N, 6]`
+
+## 人 + 动物检测
+
+选择“人 + 动物（ONNX）”后，人脸与动物检测同时运行：
+
+1. `YuNet` 检测人脸，标注为 `face`，使用人脸置信度阈值；
+2. 动物检测复用 `内置 YOLOX INT8（COCO 动物）` 或 `自定义 YOLOv5 / YOLOv8 ONNX`，标注为对应动物类别。
+
+两个检测器在同一帧内并发推理，结果合并后按类别去重，跟踪器按标签独立关联，
+因此同一个人脸和动物不会互相干扰。该模式全部使用内置模型，无需额外下载。
 
 ## 保存网络视频流
 
@@ -155,6 +166,19 @@ await engine.StartAsync(new CameraSourceOptions
 });
 ```
 
+同时检测多类目标（例如人脸与动物）时，可传入多个检测器，引擎会自动组合执行：
+
+```csharp
+var engine = new CameraTrackingEngine(
+    new IObjectDetector[]
+    {
+        new YuNetFaceDetector("face_detection_yunet_2023mar.onnx"),
+        new YoloXOnnxDetector("object_detection_yolox_2022nov_int8.onnx")
+    },
+    detectionInterval: 1,
+    tracker);
+```
+
 窗口关闭或切换视频源时：
 
 ```csharp
@@ -169,6 +193,7 @@ await engine.DisposeAsync();
 - `Detection/HaarFaceDetector.cs`：Haar 兼容检测。
 - `Detection/YoloXOnnxDetector.cs`：内置动物模型解析。
 - `Detection/YoloOnnxDetector.cs`：自定义 YOLOv5/YOLOv8 模型解析。
+- `Detection/CompositeObjectDetector.cs`：多检测器组合，并发推理并按标签去重。
 - `Tracking/IouMultiObjectTracker.cs`：目标关联、编号和边框平滑。
 - `Configuration/SettingsStore.cs`：JSON 设置持久化。
 - `SettingsWindow.xaml`：语言、阈值和网络流管理。

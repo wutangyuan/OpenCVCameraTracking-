@@ -72,6 +72,7 @@
                         <ComboBoxItem Content="{DynamicResource FaceYuNet}" Tag="Face" />
                         <ComboBoxItem Content="{DynamicResource FaceHaar}" Tag="Haar" />
                         <ComboBoxItem Content="{DynamicResource AnimalYolo}" Tag="Animal" />
+                        <ComboBoxItem Content="{DynamicResource PersonAnimalMode}" Tag="PersonAnimal" />
                     </ComboBox>
 
                     <StackPanel x:Name="ModelPanel" Visibility="Collapsed">

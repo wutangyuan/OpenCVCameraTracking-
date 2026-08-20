@@ -18,6 +18,7 @@
     <sys:String x:Key="FaceYuNet">人脸（YuNet，推荐）</sys:String>
     <sys:String x:Key="FaceHaar">人脸（Haar，兼容）</sys:String>
     <sys:String x:Key="AnimalYolo">动物（ONNX）</sys:String>
+    <sys:String x:Key="PersonAnimalMode">人 + 动物（ONNX）</sys:String>
     <sys:String x:Key="AnimalModel">动物检测模型</sys:String>
     <sys:String x:Key="BuiltInYoloX">内置 YOLOX INT8（COCO 动物）</sys:String>
     <sys:String x:Key="CustomYolo">自定义 YOLOv5 / YOLOv8 ONNX</sys:String>
