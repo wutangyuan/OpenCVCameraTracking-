@@ -94,12 +94,29 @@ public partial class MainWindow : Window
                 _settings.FaceConfidence),
             "Haar" => new HaarFaceDetector(
                 Path.Combine(modelDirectory, "haarcascade_frontalface_default.xml")),
-            "Animal" when SelectedTag(AnimalModelBox) == "BuiltIn" => new YoloXOnnxDetector(
-                Path.Combine(modelDirectory, "object_detection_yolox_2022nov_int8.onnx"),
-                confidenceThreshold: _settings.AnimalConfidence),
-            "Animal" => CreateCustomAnimalDetector(),
+            "Animal" => CreateAnimalDetector(),
+            "PersonAnimal" => new CompositeObjectDetector(
+            [
+                new YuNetFaceDetector(
+                    Path.Combine(modelDirectory, "face_detection_yunet_2023mar.onnx"),
+                    _settings.FaceConfidence),
+                CreateAnimalDetector()
+            ]),
             _ => throw new InvalidOperationException("Unknown detection mode.")
         };
+    }
+
+    private IObjectDetector CreateAnimalDetector()
+    {
+        if (SelectedTag(AnimalModelBox) == "BuiltIn")
+        {
+            var modelDirectory = Path.Combine(AppContext.BaseDirectory, "Assets", "Models");
+            return new YoloXOnnxDetector(
+                Path.Combine(modelDirectory, "object_detection_yolox_2022nov_int8.onnx"),
+                confidenceThreshold: _settings.AnimalConfidence);
+        }
+
+        return CreateCustomAnimalDetector();
     }
 
     private IObjectDetector CreateCustomAnimalDetector()
@@ -315,7 +332,8 @@ public partial class MainWindow : Window
 
     private void UpdateModelPanels()
     {
-        var animalMode = SelectedTag(DetectionModeBox) == "Animal";
+        var detectionTag = SelectedTag(DetectionModeBox);
+        var animalMode = detectionTag is "Animal" or "PersonAnimal";
         ModelPanel.Visibility = animalMode ? Visibility.Visible : Visibility.Collapsed;
         CustomModelPanel.Visibility = animalMode && SelectedTag(AnimalModelBox) == "Custom"
             ? Visibility.Visible

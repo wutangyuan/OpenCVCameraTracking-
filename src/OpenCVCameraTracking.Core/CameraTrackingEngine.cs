@@ -43,6 +43,14 @@ public sealed class CameraTrackingEngine : IAsyncDisposable
         _tracker = tracker ?? new IouMultiObjectTracker();
     }
 
+    public CameraTrackingEngine(
+        IEnumerable<IObjectDetector> detectors,
+        int detectionInterval = 2,
+        IouMultiObjectTracker? tracker = null)
+        : this(new CompositeObjectDetector(detectors), detectionInterval, tracker)
+    {
+    }
+
     public event EventHandler<FrameReadyEventArgs>? FrameReady;
     public event EventHandler<string>? StatusChanged;
     public event EventHandler<Exception>? Faulted;
