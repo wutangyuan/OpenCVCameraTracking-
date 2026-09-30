@@ -2,6 +2,7 @@ using System.IO;
 using System.Text.Json;
 using OpenCVCameraTracking.Core.Notifications;
 using OpenCVCameraTracking.Localization;
+using OpenCVCameraTracking.Themes;
 
 namespace OpenCVCameraTracking.Configuration;
 
@@ -78,6 +79,7 @@ public static class SettingsStore
     private static void Normalize(ApplicationSettings settings)
     {
         settings.Language = settings.Language is "en-US" ? "en-US" : "zh-CN";
+        settings.ThemeMode = ThemeManager.Normalize(settings.ThemeMode);
         settings.SelectedStreamVariant = settings.SelectedStreamVariant is "Sub" ? "Sub" : "Main";
         settings.FaceConfidence = Math.Clamp(settings.FaceConfidence, 0.3f, 0.95f);
         settings.AnimalConfidence = Math.Clamp(settings.AnimalConfidence, 0.15f, 0.9f);

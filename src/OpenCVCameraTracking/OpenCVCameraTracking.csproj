@@ -20,9 +20,9 @@
     <!-- Windows App SDK self-contained deployment needs a concrete native architecture. -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
-    <Version>1.0.7.0</Version>
-    <AssemblyVersion>1.0.7.0</AssemblyVersion>
-    <FileVersion>1.0.7.0</FileVersion>
+    <Version>1.0.8.0</Version>
+    <AssemblyVersion>1.0.8.0</AssemblyVersion>
+    <FileVersion>1.0.8.0</FileVersion>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <ProjectGuid>{DFD87969-650E-4D15-9574-6C1DF607019D}</ProjectGuid>
   </PropertyGroup>

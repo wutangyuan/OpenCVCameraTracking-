@@ -17,6 +17,7 @@ using OpenCVCameraTracking.Core.Logging;
 using OpenCVCameraTracking.Configuration;
 using OpenCVCameraTracking.Core.Notifications;
 using OpenCVCameraTracking.Localization;
+using OpenCVCameraTracking.Themes;
 using Microsoft.Win32;
 using OpenCVCameraTracking.Updates;
 using System.Diagnostics;
@@ -758,7 +759,8 @@ public partial class MainWindow : Window
 
         var selectedSources = selectionWindow.SelectedSources;
         _settings.MultiPreviewSourceKeys = selectedSources.Select(source => source.Key).ToList();
-        var window = new MultiCameraWindow(selectedSources, _settings) { Owner = this };
+        var currentPreviewEngine = _engine is { IsRunning: true } engine ? engine : null;
+        var window = new MultiCameraWindow(selectedSources, _settings, currentSourceKey, currentPreviewEngine) { Owner = this };
         window.ShowDialog();
         _settings.SelectedLayout = window.SelectedLayout;
         _settings.LayoutStreamIds = window.OrderedSourceKeys.ToList();
@@ -929,9 +931,10 @@ public partial class MainWindow : Window
         }
 
         _settings = window.Result;
-        AppLogger.Info($"User saved settings: language={_settings.Language}, sourceKind={_settings.SelectedSourceKind}");
+        AppLogger.Info($"User saved settings: language={_settings.Language}, theme={_settings.ThemeMode}, sourceKind={_settings.SelectedSourceKind}");
         ((App)Application.Current).Settings = _settings;
         LocalizationManager.Apply(_settings.Language);
+        ThemeManager.Apply(_settings.ThemeMode);
         SettingsStore.ApplyLocalizedDefaults(_settings);
         SettingsStore.Save(_settings);
         ApplySettingsToUi();

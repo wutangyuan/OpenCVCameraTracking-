@@ -18,6 +18,8 @@ namespace OpenCVCameraTracking;
 public partial class MultiCameraWindow : Window
 {
     private readonly ApplicationSettings _settings;
+    private readonly string? _mainPreviewSourceKey;
+    private readonly CameraTrackingEngine? _mainPreviewEngine;
     private readonly ObservableCollection<TileModel> _tiles = [];
     private Point _dragStart;
     private TileModel? _fullscreenTile;
@@ -28,10 +30,16 @@ public partial class MultiCameraWindow : Window
     private bool _closingCleanupInProgress;
     private bool _allowClose;
 
-    public MultiCameraWindow(IReadOnlyList<MultiPreviewSource> sources, ApplicationSettings settings)
+    public MultiCameraWindow(
+        IReadOnlyList<MultiPreviewSource> sources,
+        ApplicationSettings settings,
+        string? mainPreviewSourceKey,
+        CameraTrackingEngine? mainPreviewEngine)
     {
         InitializeComponent();
         _settings = settings;
+        _mainPreviewSourceKey = mainPreviewSourceKey;
+        _mainPreviewEngine = mainPreviewEngine;
         TilesBox.ItemsSource = _tiles;
         Loaded += (_, _) => { _gridPanel = FindVisualChild<UniformGrid>(TilesBox); SetLayout(SelectedLayout); };
         SelectLayout(settings.SelectedLayout);
@@ -44,13 +52,42 @@ public partial class MultiCameraWindow : Window
         {
             var tile = new TileModel(source);
             _tiles.Add(tile);
-            _ = StartTileAsync(tile);
+            if (UsesMainPreviewFrame(source))
+            {
+                StartSharedMainPreviewTile(tile);
+            }
+            else
+            {
+                _ = StartTileAsync(tile);
+            }
         }
 
     }
 
     public string SelectedLayout { get; private set; } = "Single";
     public IReadOnlyList<string> OrderedSourceKeys => _tiles.Select(tile => tile.Source.Key).ToArray();
+
+    private bool UsesMainPreviewFrame(MultiPreviewSource source) =>
+        _mainPreviewEngine is { IsRunning: true } &&
+        string.Equals(source.Key, _mainPreviewSourceKey, StringComparison.OrdinalIgnoreCase);
+
+    private void StartSharedMainPreviewTile(TileModel tile)
+    {
+        var engine = _mainPreviewEngine;
+        if (engine is not { IsRunning: true })
+        {
+            _ = StartTileAsync(tile);
+            return;
+        }
+
+        tile.Status = LocalizationManager.Get("Status_Connecting");
+        EventHandler<FrameReadyEventArgs> frameReadyHandler = (_, args) => QueueTileFrameUpdate(tile, args);
+        EventHandler<VideoSourceStatusEventArgs> sourceStatusHandler = (_, args) =>
+            QueueTileStatusUpdate(tile, args);
+        tile.AttachSharedEngine(engine, frameReadyHandler, sourceStatusHandler);
+        engine.FrameReady += frameReadyHandler;
+        engine.SourceStatusChanged += sourceStatusHandler;
+    }
 
     private async Task StartTileAsync(TileModel tile)
     {
@@ -60,20 +97,11 @@ public partial class MultiCameraWindow : Window
             tile.Engine = new CameraTrackingEngine(new EmptyObjectDetector());
             tile.Engine.FrameReady += (_, args) =>
             {
-                if (!_isClosing)
-                {
-                    _ = Dispatcher.InvokeAsync(() => tile.UpdateFrame(args));
-                }
+                QueueTileFrameUpdate(tile, args);
             };
             tile.Engine.SourceStatusChanged += (_, args) =>
             {
-                if (!_isClosing)
-                {
-                    _ = Dispatcher.InvokeAsync(() =>
-                        tile.Status = args.Status == "Connected"
-                            ? $"{args.Width}×{args.Height}"
-                            : LocalizeSourceStatus(args.Status));
-                }
+                QueueTileStatusUpdate(tile, args);
             };
             await tile.Engine.StartAsync(tile.Source.Options);
         }
@@ -82,6 +110,40 @@ public partial class MultiCameraWindow : Window
             tile.Status = LocalizationManager.GetExceptionMessage(exception);
             AppLogger.Error($"Multi-camera tile failed: {tile.Source.Name}", exception);
         }
+    }
+
+    private void QueueTileFrameUpdate(TileModel tile, FrameReadyEventArgs args)
+    {
+        if (_isClosing)
+        {
+            return;
+        }
+
+        _ = Dispatcher.InvokeAsync(() =>
+        {
+            if (!_isClosing)
+            {
+                tile.UpdateFrame(args);
+            }
+        });
+    }
+
+    private void QueueTileStatusUpdate(TileModel tile, VideoSourceStatusEventArgs args)
+    {
+        if (_isClosing)
+        {
+            return;
+        }
+
+        _ = Dispatcher.InvokeAsync(() =>
+        {
+            if (!_isClosing)
+            {
+                tile.Status = args.Status == "Connected"
+                    ? $"{args.Width}×{args.Height}"
+                    : LocalizeSourceStatus(args.Status);
+            }
+        });
     }
 
     private static string LocalizeSourceStatus(string status) => status switch
@@ -97,6 +159,7 @@ public partial class MultiCameraWindow : Window
     {
         foreach (var tile in _tiles)
         {
+            tile.DetachSharedEngine();
             if (tile.Engine is not null)
             {
                 await tile.Engine.DisposeAsync();
@@ -276,12 +339,45 @@ public partial class MultiCameraWindow : Window
         public TileModel(MultiPreviewSource source) => Source = source;
         public MultiPreviewSource Source { get; }
         public CameraTrackingEngine? Engine { get; set; }
+        private CameraTrackingEngine? SharedEngine { get; set; }
+        private EventHandler<FrameReadyEventArgs>? SharedFrameReadyHandler { get; set; }
+        private EventHandler<VideoSourceStatusEventArgs>? SharedSourceStatusHandler { get; set; }
         public string DisplayName => Source.Name;
         public BitmapSource? Image { get => _image; private set => Set(ref _image, value); }
         public string Status { get => _status; set => Set(ref _status, value); }
         public Visibility PlaceholderVisibility => Image is null ? Visibility.Visible : Visibility.Collapsed;
         public bool IsVisible { get => _isVisible; set { if (Set(ref _isVisible, value)) OnPropertyChanged(nameof(TileVisibility)); } }
         public Visibility TileVisibility => IsVisible ? Visibility.Visible : Visibility.Collapsed;
+
+        public void AttachSharedEngine(
+            CameraTrackingEngine engine,
+            EventHandler<FrameReadyEventArgs> frameReadyHandler,
+            EventHandler<VideoSourceStatusEventArgs> sourceStatusHandler)
+        {
+            SharedEngine = engine;
+            SharedFrameReadyHandler = frameReadyHandler;
+            SharedSourceStatusHandler = sourceStatusHandler;
+        }
+
+        public void DetachSharedEngine()
+        {
+            if (SharedEngine is not null)
+            {
+                if (SharedFrameReadyHandler is not null)
+                {
+                    SharedEngine.FrameReady -= SharedFrameReadyHandler;
+                }
+
+                if (SharedSourceStatusHandler is not null)
+                {
+                    SharedEngine.SourceStatusChanged -= SharedSourceStatusHandler;
+                }
+            }
+
+            SharedEngine = null;
+            SharedFrameReadyHandler = null;
+            SharedSourceStatusHandler = null;
+        }
 
         public void UpdateFrame(FrameReadyEventArgs args)
         {

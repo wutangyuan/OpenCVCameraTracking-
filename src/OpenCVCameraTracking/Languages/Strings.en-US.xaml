@@ -91,6 +91,13 @@
     <sys:String x:Key="SettingsTitle">Settings &amp; stream management</sys:String>
     <sys:String x:Key="GeneralSettings">General</sys:String>
     <sys:String x:Key="Language">Language</sys:String>
+    <sys:String x:Key="ThemeMode">Theme mode</sys:String>
+    <sys:String x:Key="FollowSystemTheme">Follow system</sys:String>
+    <sys:String x:Key="FollowSystemThemeHint">Automatically use the Windows app theme setting.</sys:String>
+    <sys:String x:Key="ThemeLight">Light</sys:String>
+    <sys:String x:Key="ThemeLightHint">Bright background for daytime use.</sys:String>
+    <sys:String x:Key="ThemeDark">Dark</sys:String>
+    <sys:String x:Key="ThemeDarkHint">Dark background for low-light environments.</sys:String>
     <sys:String x:Key="AlertSettings">Alerts</sys:String>
     <sys:String x:Key="Chinese">Simplified Chinese</sys:String>
     <sys:String x:Key="NotificationSettings">Message notifications</sys:String>

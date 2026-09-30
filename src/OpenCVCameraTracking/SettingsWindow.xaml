@@ -2,12 +2,41 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:localization="clr-namespace:OpenCVCameraTracking.Localization"
-        Title="{DynamicResource SettingsTitle}" Width="1160" Height="740"
-        MinWidth="980" MinHeight="620" WindowStartupLocation="CenterOwner"
-        Background="#101418" Foreground="#EAF0F4" ResizeMode="CanResizeWithGrip"
+        Title="{DynamicResource SettingsTitle}" Width="1160" Height="820"
+        MinWidth="980" MinHeight="620"
+        MaxHeight="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Height}"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource TextBrush}" ResizeMode="CanResizeWithGrip"
         Icon="Assets/AppIcon.ico">
     <Window.Resources>
         <localization:NotificationChannelKindConverter x:Key="NotificationChannelKindConverter" />
+        <Style x:Key="ThemeOptionStyle" TargetType="RadioButton">
+            <Setter Property="Margin" Value="0,8,10,0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="ThemeCard" Background="{DynamicResource SurfaceAltBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                CornerRadius="7" Padding="8">
+                            <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ThemeCard" Property="Background" Value="{DynamicResource ControlHover}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="ThemeCard" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="ThemeCard" Property="BorderThickness" Value="2" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ThemeCard" Property="Opacity" Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     <Grid Margin="20">
         <Grid.RowDefinitions>
@@ -17,17 +46,10 @@
         </Grid.RowDefinitions>
 
         <Grid Margin="0,0,0,18">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
             <StackPanel>
                 <TextBlock Text="{DynamicResource SettingsTitle}" FontSize="25" FontWeight="SemiBold" />
-                <TextBlock Text="{DynamicResource StreamProfiles}" Foreground="#8FA2AD" Margin="0,4,0,0" />
+                <TextBlock Text="{DynamicResource StreamProfiles}" Foreground="{DynamicResource MutedTextBrush}" Margin="0,4,0,0" />
             </StackPanel>
-            <Border Grid.Column="1" Background="#172128" CornerRadius="8" Padding="12,7">
-                <TextBlock Text="OpenCV · WPF" Foreground="#72D6B5" />
-            </Border>
         </Grid>
 
         <Grid Grid.Row="1">
@@ -37,7 +59,7 @@
                 <ColumnDefinition Width="0.92*" />
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Background="#182127" BorderBrush="#2C3B44" BorderThickness="1"
+            <Border Grid.Column="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                     CornerRadius="10" Padding="16">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -80,7 +102,7 @@
                         </StackPanel>
                     </Grid>
                     <CheckBox x:Name="ProfileEnabledBox" Grid.Row="7" Content="{DynamicResource StreamEnabled}" />
-                    <TextBlock Grid.Row="7" Text="{DynamicResource StreamEnabledHint}" Foreground="#8FA2AD"
+                    <TextBlock Grid.Row="7" Text="{DynamicResource StreamEnabledHint}" Foreground="{DynamicResource MutedTextBrush}"
                                FontSize="11" Margin="156,9,0,0" VerticalAlignment="Top" />
                     <Grid Grid.Row="8">
                         <Grid.ColumnDefinitions>
@@ -88,14 +110,14 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <Button Content="{DynamicResource AddOrUpdate}" Click="AddOrUpdateButton_OnClick"
-                                Background="#087F5B" BorderBrush="#18A979" Margin="0,3,5,3" />
+                                Background="{DynamicResource AccentFillBrush}" BorderBrush="{DynamicResource AccentBrush}" Foreground="White" Margin="0,3,5,3" />
                         <Button Grid.Column="1" Content="{DynamicResource Delete}" Click="DeleteButton_OnClick"
                                 Margin="5,3,0,3" />
                     </Grid>
                 </Grid>
             </Border>
 
-            <Border Grid.Column="2" Background="#182127" BorderBrush="#2C3B44" BorderThickness="1"
+            <Border Grid.Column="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                     CornerRadius="10" Padding="12">
                 <TabControl x:Name="SettingsTabs">
                     <TabItem Header="{DynamicResource GeneralSettings}">
@@ -106,6 +128,43 @@
                                     <ComboBoxItem Content="{DynamicResource Chinese}" Tag="zh-CN" />
                                     <ComboBoxItem Content="{DynamicResource English}" Tag="en-US" />
                                 </ComboBox>
+                                 <TextBlock Text="{DynamicResource ThemeMode}" Margin="0,4,0,0" />
+                                 <CheckBox x:Name="FollowSystemThemeBox" Content="{DynamicResource FollowSystemTheme}"
+                                           Checked="ThemeModeControl_OnChanged" Unchecked="ThemeModeControl_OnChanged" />
+                                 <TextBlock Text="{DynamicResource FollowSystemThemeHint}" Foreground="{DynamicResource MutedTextBrush}"
+                                            TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4" />
+                                 <StackPanel x:Name="ThemeOptionsPanel" Orientation="Horizontal">
+                                     <RadioButton x:Name="LightThemeRadioButton" GroupName="ThemeMode" Style="{StaticResource ThemeOptionStyle}"
+                                                  Checked="ThemeModeControl_OnChanged" Width="150">
+                                         <StackPanel>
+                                             <Border Height="50" Background="#F6F8FA" BorderBrush="#D5DEE5" BorderThickness="1"
+                                                     CornerRadius="4" Padding="9">
+                                                 <StackPanel>
+                                                     <Border Height="8" Width="82" HorizontalAlignment="Left" Background="#DCE5EB" CornerRadius="3" />
+                                                     <Border Height="12" Width="56" HorizontalAlignment="Left" Background="#B8D5F8" CornerRadius="3" Margin="0,7,0,0" />
+                                                 </StackPanel>
+                                             </Border>
+                                             <TextBlock Text="{DynamicResource ThemeLight}" FontWeight="SemiBold" Margin="2,7,2,0" />
+                                             <TextBlock Text="{DynamicResource ThemeLightHint}" Foreground="{DynamicResource MutedTextBrush}"
+                                                        FontSize="11" TextWrapping="Wrap" Margin="2,2,2,0" />
+                                         </StackPanel>
+                                     </RadioButton>
+                                     <RadioButton x:Name="DarkThemeRadioButton" GroupName="ThemeMode" Style="{StaticResource ThemeOptionStyle}"
+                                                  Checked="ThemeModeControl_OnChanged" Width="150">
+                                         <StackPanel>
+                                             <Border Height="50" Background="#111418" BorderBrush="#263641" BorderThickness="1"
+                                                     CornerRadius="4" Padding="9">
+                                                 <StackPanel>
+                                                     <Border Height="8" Width="82" HorizontalAlignment="Left" Background="#4B5A64" CornerRadius="3" />
+                                                     <Border Height="12" Width="56" HorizontalAlignment="Left" Background="#2677C9" CornerRadius="3" Margin="0,7,0,0" />
+                                                 </StackPanel>
+                                             </Border>
+                                             <TextBlock Text="{DynamicResource ThemeDark}" FontWeight="SemiBold" Margin="2,7,2,0" />
+                                             <TextBlock Text="{DynamicResource ThemeDarkHint}" Foreground="{DynamicResource MutedTextBrush}"
+                                                        FontSize="11" TextWrapping="Wrap" Margin="2,2,2,0" />
+                                         </StackPanel>
+                                     </RadioButton>
+                                 </StackPanel>
                                 <TextBlock Text="{DynamicResource VideoBackend}" />
                                 <ComboBox x:Name="BackendBox">
                                     <ComboBoxItem Content="{DynamicResource BackendAuto}" Tag="Auto" />
@@ -134,12 +193,12 @@
                             </Grid.RowDefinitions>
                             <StackPanel Grid.Row="0">
                                 <TextBlock Text="{DynamicResource RestrictedZone}" FontSize="18" FontWeight="SemiBold" />
-                                <TextBlock Text="{DynamicResource RestrictedZoneHint}" Foreground="#8FA2AD"
+                                <TextBlock Text="{DynamicResource RestrictedZoneHint}" Foreground="{DynamicResource MutedTextBrush}"
                                            TextWrapping="Wrap" Margin="0,8,0,14" />
-                                <Border Background="#11171B" BorderBrush="#2C3B44" BorderThickness="1"
+                                <Border Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                                         CornerRadius="7" Padding="12">
                                     <StackPanel>
-                                        <TextBlock x:Name="RestrictedZoneSummaryText" Foreground="#F1B84B"
+                                        <TextBlock x:Name="RestrictedZoneSummaryText" Foreground="{DynamicResource WarningBrush}"
                                                    TextWrapping="Wrap" />
                                         <Grid Margin="0,12,0,0">
                                             <Grid.ColumnDefinitions>
@@ -163,7 +222,7 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <TextBlock Text="{DynamicResource NotificationSettings}" FontSize="18" FontWeight="SemiBold" />
-                                <TextBlock Grid.Row="1" Text="{DynamicResource NotificationSettingsHint}" Foreground="#8FA2AD"
+                                <TextBlock Grid.Row="1" Text="{DynamicResource NotificationSettingsHint}" Foreground="{DynamicResource MutedTextBrush}"
                                            TextWrapping="Wrap" Margin="0,8,0,12" />
                                 <ListBox Grid.Row="2" x:Name="NotificationChannelsBox" MinHeight="80" Margin="0,0,0,8"
                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -179,13 +238,13 @@
                                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
                                                 <TextBlock Grid.Column="1"
                                                            Text="{Binding Kind, Converter={StaticResource NotificationChannelKindConverter}}"
-                                                           Foreground="#72D6B5"
+                                                           Foreground="{DynamicResource AccentHighlightBrush}"
                                                            Margin="12,0,0,0" />
                                             </Grid>
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>
-                                <TextBlock Grid.Row="3" x:Name="NotificationChannelsSummaryText" Foreground="#8FA2AD"
+                                <TextBlock Grid.Row="3" x:Name="NotificationChannelsSummaryText" Foreground="{DynamicResource MutedTextBrush}"
                                            FontSize="12" Margin="0,0,0,8" />
                                 <Grid Grid.Row="4">
                                     <Grid.ColumnDefinitions>
@@ -194,7 +253,7 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <Button Content="{DynamicResource AddNotification}" Click="AddNotificationButton_OnClick"
-                                            Background="#087F5B" BorderBrush="#18A979" Margin="0,0,4,0" />
+                                            Background="{DynamicResource AccentFillBrush}" BorderBrush="{DynamicResource AccentBrush}" Foreground="White" Margin="0,0,4,0" />
                                     <Button Grid.Column="1" Content="{DynamicResource EditNotification}" Click="EditNotificationButton_OnClick"
                                             Margin="4,0" />
                                     <Button Grid.Column="2" Content="{DynamicResource DeleteNotification}" Click="DeleteNotificationButton_OnClick"
@@ -209,20 +268,20 @@
                                 <TextBlock Text="{DynamicResource RtspSettings}" FontSize="18" FontWeight="SemiBold" />
                                 <CheckBox x:Name="LowLatencyBox" Content="{DynamicResource LowLatencyMode}" Margin="0,12,0,3" />
                                 <TextBlock Text="{DynamicResource LowLatencyHint}" TextWrapping="Wrap"
-                                           Foreground="#8FA2AD" FontSize="12" Margin="22,0,0,18" />
-                                <Separator Margin="0,2,0,15" Background="#34454F" />
+                                           Foreground="{DynamicResource MutedTextBrush}" FontSize="12" Margin="22,0,0,18" />
+                                <Separator Margin="0,2,0,15" Background="{DynamicResource DividerBrush}" />
                                 <TextBlock Text="{DynamicResource DetectionSettings}" FontSize="18" FontWeight="SemiBold" />
                                 <Grid Margin="0,12,0,0">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <TextBlock Text="{DynamicResource FaceConfidence}" />
-                                    <TextBlock x:Name="FaceConfidenceText" Grid.Column="1" Foreground="#72D6B5" />
+                                    <TextBlock x:Name="FaceConfidenceText" Grid.Column="1" Foreground="{DynamicResource AccentHighlightBrush}" />
                                 </Grid>
                                 <Slider x:Name="FaceConfidenceSlider" Minimum="0.3" Maximum="0.9" TickFrequency="0.05"
                                         IsSnapToTickEnabled="True" ValueChanged="ConfidenceSlider_OnValueChanged" Margin="0,7,0,18" />
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <TextBlock Text="{DynamicResource AnimalConfidence}" />
-                                    <TextBlock x:Name="AnimalConfidenceText" Grid.Column="1" Foreground="#72D6B5" />
+                                    <TextBlock x:Name="AnimalConfidenceText" Grid.Column="1" Foreground="{DynamicResource AccentHighlightBrush}" />
                                 </Grid>
                                 <Slider x:Name="AnimalConfidenceSlider" Minimum="0.15" Maximum="0.8" TickFrequency="0.05"
                                         IsSnapToTickEnabled="True" ValueChanged="ConfidenceSlider_OnValueChanged" Margin="0,7,0,5" />
@@ -232,7 +291,7 @@
                     <TabItem Header="{DynamicResource OnvifSettings}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                             <StackPanel>
-                                <TextBlock Text="{DynamicResource OnvifHint}" Foreground="#8FA2AD" TextWrapping="Wrap" Margin="0,0,0,8" />
+                                <TextBlock Text="{DynamicResource OnvifHint}" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,0,0,8" />
                                 <Grid Margin="0,0,0,4">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
@@ -241,7 +300,7 @@
                                     <TextBox x:Name="OnvifUserBox" Grid.Row="1" ToolTip="{DynamicResource OnvifUser}" />
                                     <PasswordBox x:Name="OnvifPasswordBox" Grid.Row="1" Grid.Column="1"
                                                  ToolTip="{DynamicResource OnvifPassword}"
-                                                 Foreground="#E8F0F4" Background="#202B32" BorderBrush="#3B4D58"
+                                                 Foreground="{DynamicResource TextBrush}" Background="{DynamicResource ControlBackground}" BorderBrush="{DynamicResource ControlBorder}"
                                                  BorderThickness="1" Padding="10,6" Margin="8,5,0,12" />
                                 </Grid>
                                 <Button Content="{DynamicResource DiscoverOnvif}" Click="DiscoverOnvifButton_OnClick" />
@@ -269,7 +328,7 @@
                     <TabItem Header="{DynamicResource CameraProfiles}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                             <StackPanel>
-                                <TextBlock Text="{DynamicResource CameraProfilesHint}" Foreground="#8FA2AD" TextWrapping="Wrap" Margin="0,0,0,8" />
+                                <TextBlock Text="{DynamicResource CameraProfilesHint}" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,0,0,8" />
                                 <ListBox x:Name="CameraProfilesBox" Height="180" DisplayMemberPath="DisplayName"
                                          SelectionChanged="CameraProfilesBox_OnSelectionChanged" />
                                 <Grid>
@@ -293,10 +352,10 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock VerticalAlignment="Center" Foreground="#71838D" Text="settings.json · LocalAppData" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource SubtleTextBrush}" Text="settings.json · LocalAppData" />
             <Button Grid.Column="1" Content="{DynamicResource Cancel}" Click="CancelButton_OnClick" MinWidth="100" />
             <Button Grid.Column="2" Content="{DynamicResource Save}" Click="SaveButton_OnClick"
-                    Background="#087F5B" BorderBrush="#18A979" MinWidth="110" />
+                    Background="{DynamicResource AccentFillBrush}" BorderBrush="{DynamicResource AccentBrush}" Foreground="White" MinWidth="110" />
         </Grid>
     </Grid>
 </Window>

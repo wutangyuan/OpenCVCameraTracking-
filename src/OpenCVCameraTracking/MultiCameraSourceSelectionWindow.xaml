@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="{DynamicResource MultiCameraSources}" Width="620" Height="560"
         MinWidth="520" MinHeight="440" WindowStartupLocation="CenterOwner"
-        Background="#101418" Foreground="#EAF0F4" Icon="Assets/AppIcon.ico">
+        Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource TextBrush}" Icon="Assets/AppIcon.ico">
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -12,9 +12,9 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <TextBlock Text="{DynamicResource MultiCameraSources}" FontSize="24" FontWeight="SemiBold" />
-        <TextBlock Grid.Row="1" Text="{DynamicResource MultiCameraSourceHint}" Foreground="#8FA2AD"
+        <TextBlock Grid.Row="1" Text="{DynamicResource MultiCameraSourceHint}" Foreground="{DynamicResource MutedTextBrush}"
                    TextWrapping="Wrap" Margin="0,7,0,14" />
-        <ListBox x:Name="SourceList" Grid.Row="2" BorderBrush="#344750">
+        <ListBox x:Name="SourceList" Grid.Row="2" BorderBrush="{DynamicResource DividerBrush}">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Grid Margin="2">
@@ -25,7 +25,7 @@
                         <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" VerticalAlignment="Center" />
                         <StackPanel Grid.Column="1" Margin="8,3">
                             <TextBlock Text="{Binding Source.Name}" FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding Source.Description}" Foreground="#8FA2AD" FontSize="12" />
+                            <TextBlock Text="{Binding Source.Description}" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" />
                         </StackPanel>
                     </Grid>
                 </DataTemplate>
@@ -37,11 +37,11 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Text="{DynamicResource MultiCameraSourceSelectionTip}" Foreground="#71838D"
+            <TextBlock Text="{DynamicResource MultiCameraSourceSelectionTip}" Foreground="{DynamicResource SubtleTextBrush}"
                        VerticalAlignment="Center" TextWrapping="Wrap" />
             <Button Grid.Column="1" Content="{DynamicResource Cancel}" Click="CancelButton_OnClick" MinWidth="90" />
             <Button Grid.Column="2" Content="{DynamicResource OpenPreview}" Click="OpenPreviewButton_OnClick"
-                    Background="#087F5B" BorderBrush="#18A979" MinWidth="110" />
+                    Background="{DynamicResource AccentFillBrush}" BorderBrush="{DynamicResource AccentBrush}" Foreground="White" MinWidth="110" />
         </Grid>
     </Grid>
 </Window>

@@ -2,6 +2,7 @@ using System.Windows;
 using OpenCVCameraTracking.Configuration;
 using OpenCVCameraTracking.Core.Logging;
 using OpenCVCameraTracking.Localization;
+using OpenCVCameraTracking.Themes;
 
 namespace OpenCVCameraTracking;
 
@@ -17,11 +18,18 @@ public partial class App : Application
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
         AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
         Settings = SettingsStore.Load();
-        AppLogger.Info($"Settings loaded: language={Settings.Language}, sourceKind={Settings.SelectedSourceKind}");
+        AppLogger.Info($"Settings loaded: language={Settings.Language}, theme={Settings.ThemeMode}, sourceKind={Settings.SelectedSourceKind}");
+        ThemeManager.Initialize(this, Settings.ThemeMode);
         LocalizationManager.Apply(Settings.Language);
         SettingsStore.ApplyLocalizedDefaults(Settings);
         base.OnStartup(e);
         new MainWindow().Show();
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        ThemeManager.Shutdown();
+        base.OnExit(e);
     }
 
     private void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)

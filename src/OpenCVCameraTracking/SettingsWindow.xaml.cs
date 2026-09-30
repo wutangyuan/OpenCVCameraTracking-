@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using OpenCVCameraTracking.Configuration;
@@ -8,6 +9,7 @@ using OpenCVCameraTracking.Core.Logging;
 using OpenCVCameraTracking.Core.Notifications;
 using System.Net;
 using OpenCVCameraTracking.Localization;
+using OpenCVCameraTracking.Themes;
 
 namespace OpenCVCameraTracking;
 
@@ -23,6 +25,8 @@ public partial class SettingsWindow : Window
     private readonly ObservableCollection<NotificationChannelSettings> _notificationChannels;
     private readonly Func<NotificationChannelSettings, Task<NotificationSendResult>>? _testNotification;
     private readonly Action<IReadOnlyList<NotificationChannelSettings>>? _persistNotificationChannelsImmediately;
+    private readonly string _initialThemeMode;
+    private bool _initializingTheme;
 
     public SettingsWindow(
         ApplicationSettings settings,
@@ -33,6 +37,7 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         Result = settings.DeepClone();
+        _initialThemeMode = ThemeManager.Normalize(settings.ThemeMode);
         _selectRestrictedZone = selectRestrictedZone;
         _clearRestrictedZoneImmediately = clearRestrictedZoneImmediately;
         _testNotification = testNotification;
@@ -46,6 +51,12 @@ public partial class SettingsWindow : Window
         OnvifDevicesBox.ItemsSource = _onvifDevices;
         PresetsBox.ItemsSource = _presets;
         SelectComboTag(LanguageBox, Result.Language);
+        _initializingTheme = true;
+        FollowSystemThemeBox.IsChecked = Result.ThemeMode == ThemeManager.SystemMode;
+        LightThemeRadioButton.IsChecked = Result.ThemeMode == ThemeManager.Light;
+        DarkThemeRadioButton.IsChecked = Result.ThemeMode == ThemeManager.Dark;
+        UpdateThemeOptionsEnabled();
+        _initializingTheme = false;
         SelectComboTag(BackendBox, Result.PreferredBackend.ToString());
         SelectComboTag(LayoutBox, Result.SelectedLayout);
         LowLatencyBox.IsChecked = Result.RtspLowLatency;
@@ -68,6 +79,39 @@ public partial class SettingsWindow : Window
     }
 
     public ApplicationSettings Result { get; }
+
+    private void ThemeModeControl_OnChanged(object sender, RoutedEventArgs e)
+    {
+        UpdateThemeOptionsEnabled();
+        if (_initializingTheme)
+        {
+            return;
+        }
+
+        if (FollowSystemThemeBox.IsChecked != true &&
+            LightThemeRadioButton.IsChecked != true &&
+            DarkThemeRadioButton.IsChecked != true)
+        {
+            LightThemeRadioButton.IsChecked = true;
+            return;
+        }
+
+        ThemeManager.Apply(GetSelectedThemeMode());
+    }
+
+    private string GetSelectedThemeMode() => FollowSystemThemeBox.IsChecked == true
+        ? ThemeManager.SystemMode
+        : LightThemeRadioButton.IsChecked == true
+            ? ThemeManager.Light
+            : ThemeManager.Dark;
+
+    private void UpdateThemeOptionsEnabled()
+    {
+        if (ThemeOptionsPanel is not null)
+        {
+            ThemeOptionsPanel.IsEnabled = FollowSystemThemeBox.IsChecked != true;
+        }
+    }
 
     private void ProfilesBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -316,6 +360,7 @@ public partial class SettingsWindow : Window
     private void SaveButton_OnClick(object sender, RoutedEventArgs e)
     {
         Result.Language = SelectedTag(LanguageBox);
+        Result.ThemeMode = GetSelectedThemeMode();
         Result.PreferredBackend = Enum.TryParse<VideoCaptureBackend>(SelectedTag(BackendBox), out var backend)
             ? backend
             : VideoCaptureBackend.Auto;
@@ -502,6 +547,16 @@ public partial class SettingsWindow : Window
     }
 
     private void CancelButton_OnClick(object sender, RoutedEventArgs e) => DialogResult = false;
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (DialogResult != true)
+        {
+            ThemeManager.Apply(_initialThemeMode);
+        }
+
+        base.OnClosing(e);
+    }
 
     private void ShowInformation(string resourceKey, MessageBoxImage image = MessageBoxImage.Information) =>
         MessageBox.Show(

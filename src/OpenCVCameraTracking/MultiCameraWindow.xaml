@@ -2,10 +2,10 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="{DynamicResource MultiCamera}" Width="1180" Height="760"
-        MinWidth="720" MinHeight="480" Background="#080B0D" Foreground="#EAF0F4"
+        MinWidth="720" MinHeight="480" Background="{DynamicResource PreviewBackgroundBrush}" Foreground="{DynamicResource TextBrush}"
         WindowStartupLocation="CenterOwner" Icon="Assets/AppIcon.ico">
     <DockPanel>
-        <Border DockPanel.Dock="Top" Background="#182127" Padding="12">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource SurfaceBrush}" Padding="12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -20,13 +20,13 @@
                     <ComboBoxItem Content="3 × 3" Tag="Grid3" />
                     <ComboBoxItem Content="4 × 4" Tag="Grid4" />
                 </ComboBox>
-                <TextBlock Grid.Column="2" Text="{DynamicResource MultiCameraHint}" Foreground="#8FA2AD"
+                <TextBlock Grid.Column="2" Text="{DynamicResource MultiCameraHint}" Foreground="{DynamicResource MutedTextBrush}"
                            VerticalAlignment="Center" Margin="14,0" />
                 <Button Grid.Column="3" Content="{DynamicResource Close}" Click="CloseButton_OnClick" />
             </Grid>
         </Border>
         <ItemsControl x:Name="TilesBox" AllowDrop="True" PreviewMouseMove="TilesBox_OnPreviewMouseMove"
-                      Drop="TilesBox_OnDrop" Background="#080B0D">
+                      Drop="TilesBox_OnDrop" Background="{DynamicResource PreviewBackgroundBrush}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <UniformGrid />
@@ -34,20 +34,20 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Border Margin="5" BorderBrush="#2A3942" BorderThickness="1" Background="#11171B"
+                    <Border Margin="5" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Background="{DynamicResource SurfaceSubtleBrush}"
                             Visibility="{Binding TileVisibility}"
                             Tag="{Binding}" MouseDown="Tile_OnMouseDown">
                         <Grid>
                             <Image Source="{Binding Image}" Stretch="Uniform" />
-                            <Border HorizontalAlignment="Left" VerticalAlignment="Top" Background="#A0162027"
+                            <Border HorizontalAlignment="Left" VerticalAlignment="Top" Background="{DynamicResource OverlayBrush}"
                                     Padding="8,5" CornerRadius="0,0,5,0">
                                 <StackPanel>
                                     <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
-                                    <TextBlock Text="{Binding Status}" Foreground="#8FA2AD" FontSize="11" />
+                                    <TextBlock Text="{Binding Status}" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" />
                                 </StackPanel>
                             </Border>
                             <TextBlock Text="{DynamicResource WaitingPreview}" HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" Foreground="#52636D" Visibility="{Binding PlaceholderVisibility}" />
+                                       VerticalAlignment="Center" Foreground="{DynamicResource PlaceholderTextBrush}" Visibility="{Binding PlaceholderVisibility}" />
                         </Grid>
                     </Border>
                 </DataTemplate>

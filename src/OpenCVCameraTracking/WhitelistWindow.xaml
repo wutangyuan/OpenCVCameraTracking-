@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="{DynamicResource WhitelistTitle}" Height="560" Width="680"
         MinHeight="500" MinWidth="600"
-        Background="#101418" Foreground="#EAF0F4"
+        Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource TextBrush}"
         Icon="Assets/AppIcon.ico"
         WindowStartupLocation="CenterOwner" ResizeMode="CanResizeWithGrip">
     <Grid Margin="18">
@@ -14,8 +14,8 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Border Padding="16" CornerRadius="9" Background="#192127"
-                BorderBrush="#2A3942" BorderThickness="1">
+        <Border Padding="16" CornerRadius="9" Background="{DynamicResource SurfaceAltBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
             <StackPanel>
                 <TextBlock Text="{DynamicResource EnrollCurrentTarget}" FontSize="19"
                            FontWeight="SemiBold" Margin="0,0,0,10" />
@@ -37,10 +37,10 @@
                     </StackPanel>
                 </Grid>
                 <Button Content="{DynamicResource CaptureEnroll}" Click="EnrollButton_OnClick"
-                        HorizontalAlignment="Left" Background="#087F5B" BorderBrush="#18A979" />
+                        HorizontalAlignment="Left" Background="{DynamicResource AccentFillBrush}" BorderBrush="{DynamicResource AccentBrush}" Foreground="White" />
                 <Button Content="{DynamicResource SelectRegionEnroll}" Click="SelectRegionButton_OnClick"
                         HorizontalAlignment="Left" Margin="0,8,0,0" />
-                <TextBlock Text="{DynamicResource WhitelistEnrollHint}" Foreground="#91A4AF"
+                <TextBlock Text="{DynamicResource WhitelistEnrollHint}" Foreground="{DynamicResource MutedTextBrush}"
                            TextWrapping="Wrap" Margin="4,8,4,0" />
             </StackPanel>
         </Border>
@@ -58,9 +58,9 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel>
                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding TypeText}" Foreground="#91A4AF" FontSize="12" />
+                            <TextBlock Text="{Binding TypeText}" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" />
                         </StackPanel>
-                        <TextBlock Grid.Column="1" Text="{Binding SampleText}" Foreground="#72D6B5"
+                        <TextBlock Grid.Column="1" Text="{Binding SampleText}" Foreground="{DynamicResource AccentHighlightBrush}"
                                    VerticalAlignment="Center" Margin="12,0,4,0" />
                         <ItemsControl Grid.ColumnSpan="2" ItemsSource="{Binding Samples}" Margin="0,38,0,0">
                             <ItemsControl.ItemsPanel>
@@ -68,7 +68,7 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Margin="0,4,6,4" BorderBrush="#34454F" BorderThickness="1">
+                                    <Border Margin="0,4,6,4" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1">
                                         <Image Source="{Binding Thumbnail}" Width="64" Height="64" Stretch="UniformToFill"
                                                MouseLeftButtonDown="Sample_OnMouseLeftButtonDown" />
                                     </Border>
@@ -87,8 +87,8 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Button x:Name="DeleteButton" Content="{DynamicResource DeleteSelected}" Click="DeleteButton_OnClick"
-                    Background="#6C2D35" BorderBrush="#A74652" />
-            <TextBlock x:Name="StoragePathText" Grid.Column="1" Foreground="#70838E"
+                    Background="{DynamicResource DangerButtonBrush}" BorderBrush="{DynamicResource DangerButtonBorderBrush}" />
+            <TextBlock x:Name="StoragePathText" Grid.Column="1" Foreground="{DynamicResource SubtleTextBrush}"
                        TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="10,0" />
             <Button Grid.Column="2" Content="{DynamicResource Close}" Click="CloseButton_OnClick" />
         </Grid>

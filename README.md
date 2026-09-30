@@ -4,7 +4,7 @@
   <img src="src/OpenCVCameraTracking/Assets/AppIcon.png" alt="OpenCVCameraTracking icon" width="180" />
 </p>
 
-> **v1.0.7.0 / 版本 1.0.7.0** — 增加禁区识别、可配置消息通知和完整的中英文界面支持。Adds restricted-zone detection, configurable event notifications, and complete Chinese/English UI support.
+> **v1.0.8.0 / 版本 1.0.8.0** — 增加系统/手动主题模式、主题控件适配、多路预览复用主摄像头帧，并优化设置窗口布局。Adds system/manual theme modes, theme-aware controls, main-camera frame reuse in multi-camera preview, and improved settings layout.
 
 基于 `.NET 8 + WPF + OpenCvSharp` 的实时摄像头组件。核心采集、检测和跟踪逻辑位于
 `OpenCVCameraTracking.Core`，WPF 界面与设置管理位于 `OpenCVCameraTracking`。
@@ -54,6 +54,24 @@ dotnet run --project src/OpenCVCameraTracking/OpenCVCameraTracking.csproj
 主窗口左侧显示当前程序版本。已通过 Microsoft Store 安装的 MSIX 包会在启动时，以及程序持续运行期间每 30 分钟，通过 Windows 的 `StoreContext` 查询该账户实际可获得的更新；仅当新包已由 Microsoft Store 发布并可用时，才会在预览区右上角显示更新卡片。点击按钮会打开 Microsoft Store；用户关闭提示后，本次运行不再提醒，重启应用后仍会重新检查。Partner Center 中“正在认证”或尚未发布的包不会触发提示。
 
 仓库根目录的 `update-manifest.json` 仅为早期版本的兼容清单，不再作为当前版本的正式更新来源；请勿根据它发布或判断商店版本。
+
+### 1.0.8.0 商店更新说明 / Store release notes
+
+**中文（简体）**
+
+- 新增浅色、深色和跟随 Windows 系统的主题模式，支持运行中即时预览和切换。
+- 统一按钮、复选框、通知事件选择、下拉框和标签页等控件的浅色/深色主题样式，改善文字与背景对比度。
+- 多路预览遇到当前主摄像头时复用主窗口帧，避免重复打开摄像头，关闭多路预览不会断开主摄像头。
+- 优化设置窗口默认尺寸和内容布局，改善 1080p 及高 DPI 显示器下的可用性。
+- 中文界面主窗口标题更新为“视界守护”，并保持中英文资源统一。
+
+**English (United States)**
+
+- Added Light, Dark, and Follow Windows System theme modes with live preview and switching.
+- Unified Light/Dark styling for buttons, checkboxes, notification event selectors, combo boxes, and tabs to improve text and background contrast.
+- Multi-camera preview now reuses the main window frame when the current main camera is selected, avoiding duplicate camera access and preventing the main camera from disconnecting when preview closes.
+- Improved the default Settings window size and layout for 1080p and high-DPI displays.
+- Updated the Chinese main window title to “视界守护” while keeping Chinese and English resources consistent.
 
 ### 1.0.7.0 商店更新说明 / Store release notes
 

@@ -72,10 +72,7 @@ public partial class NotificationEditorWindow : Window
                 IsChecked = Result.EventKeys.Contains(definition.Key, StringComparer.OrdinalIgnoreCase),
                 Margin = new Thickness(0, 0, 8, 8),
                 Padding = new Thickness(12, 6, 12, 6),
-                MinWidth = 100,
-                Foreground = Brushes.White,
-                Background = new SolidColorBrush(Color.FromRgb(32, 49, 59)),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(58, 77, 88))
+                MinWidth = 100
             };
             toggle.Checked += NotificationEventToggle_OnChanged;
             toggle.Unchecked += NotificationEventToggle_OnChanged;
@@ -125,9 +122,8 @@ public partial class NotificationEditorWindow : Window
             TestStatusText.Text = result.Success
                 ? LocalizationManager.Format("NotificationTestSuccess", detail)
                 : LocalizationManager.Format("NotificationTestFailed", detail);
-            TestStatusText.Foreground = result.Success
-                ? System.Windows.Media.Brushes.LightGreen
-                : System.Windows.Media.Brushes.Orange;
+        TestStatusText.Foreground = Application.Current.TryFindResource(
+            result.Success ? "AccentHighlightBrush" : "WarningBrush") as Brush;
         }
         finally
         {

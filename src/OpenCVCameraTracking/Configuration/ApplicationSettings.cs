@@ -8,6 +8,7 @@ namespace OpenCVCameraTracking.Configuration;
 public sealed class ApplicationSettings
 {
     public string Language { get; set; } = "zh-CN";
+    public string ThemeMode { get; set; } = "System";
     public string SelectedSourceKind { get; set; } = "Device";
     public string SelectedDetectionMode { get; set; } = "Face";
     public string AnimalModelChoice { get; set; } = "BuiltIn";

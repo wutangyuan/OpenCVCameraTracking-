@@ -207,10 +207,10 @@ public partial class WhitelistWindow : Window
             Owner = this,
             Width = 420,
             Height = 420,
-            Background = new SolidColorBrush(Color.FromRgb(16, 20, 24)),
             Content = image,
             WindowStartupLocation = WindowStartupLocation.CenterOwner
         };
+        viewer.SetResourceReference(Window.BackgroundProperty, "PreviewBackgroundBrush");
         viewer.ShowDialog();
         e.Handled = true;
     }

@@ -1,7 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime">
-    <sys:String x:Key="AppTitle">OpenCVCameraTracking</sys:String>
+    <sys:String x:Key="AppTitle">视界守护</sys:String>
     <sys:String x:Key="VersionLabel">版本 {0}</sys:String>
     <sys:String x:Key="UpdateAvailable">发现新版本</sys:String>
     <sys:String x:Key="OpenStore">打开微软商店</sys:String>
@@ -91,6 +91,13 @@
     <sys:String x:Key="SettingsTitle">设置与视频源管理</sys:String>
     <sys:String x:Key="GeneralSettings">常规设置</sys:String>
     <sys:String x:Key="Language">界面语言</sys:String>
+    <sys:String x:Key="ThemeMode">主题模式</sys:String>
+    <sys:String x:Key="FollowSystemTheme">跟随系统</sys:String>
+    <sys:String x:Key="FollowSystemThemeHint">自动使用 Windows 的应用主题设置。</sys:String>
+    <sys:String x:Key="ThemeLight">浅色</sys:String>
+    <sys:String x:Key="ThemeLightHint">明亮背景，适合日间使用。</sys:String>
+    <sys:String x:Key="ThemeDark">深色</sys:String>
+    <sys:String x:Key="ThemeDarkHint">深色背景，适合低光环境。</sys:String>
     <sys:String x:Key="AlertSettings">告警</sys:String>
     <sys:String x:Key="Chinese">简体中文</sys:String>
     <sys:String x:Key="NotificationSettings">消息通知</sys:String>
