@@ -17,13 +17,15 @@
 - RTSP 低延迟模式：采集和推理解耦，始终处理最新帧，主动丢弃积压旧帧。
 - 默认使用 OpenCV YuNet ONNX 进行人脸检测，保留 Haar 兼容模式。
 - 内置 YOLOX INT8 ONNX 动物检测模型，无需另外下载模型即可使用。
+- 新增“人 + 车辆”检测模式，使用内置 YOLOX 检测行人、自行车、汽车、摩托车、飞机、公交车、火车、卡车和船。
 - 支持自定义 YOLOv5/YOLOv8 ONNX 模型。
 - "人 + 动物"复合检测：YuNet 人脸与动物检测顺序处理同一帧，两类目标同时显示并独立跟踪，避免 OpenCV 原生资源并发访问。
 - IoU 多目标关联、位置平滑和短时丢失保留，画面中显示稳定目标编号。
 - 本地人脸/猫白名单：支持从当前画面自动抓取或拖拽圈选区域录入样本；人脸使用 YuNet 五点对齐与 SFace ONNX 特征向量匹配，猫保留 OpenCV LBPH 轻量级匹配。
 - 白名单成员按最近录入时间倒序显示，样本列表提供缩略图，双击缩略图可查看大图。
 - 已知目标与陌生目标事件记录；陌生人或未录入的猫出现时显示红色提示。
-- 支持在当前画面拖拽设置禁区；检测到人或猫进入禁区时显示画面标记、声音和告警横幅。
+- 支持设置多个命名区域并分别重画或删除；检测到人、猫或车辆进入区域时显示画面标记、声音和告警横幅。
+- 陌生/已知目标状态变化或禁区进入会自动保存本地事件快照和前后录像，支持事件回放、导出与到期清理。
 - 支持配置多个消息通知渠道（Server酱、飞书机器人、SMTP 邮件、Telegram），并按事件分别选择是否发送。
 - 设置窗口可管理多个网络视频流并记住默认选择。
 - 保存来源类型、检测模式、模型、检测阈值、语言和上次输入的网络地址。
@@ -72,6 +74,20 @@ dotnet run --project src/OpenCVCameraTracking/OpenCVCameraTracking.csproj
 - Multi-camera preview now reuses the main window frame when the current main camera is selected, avoiding duplicate camera access and preventing the main camera from disconnecting when preview closes.
 - Improved the default Settings window size and layout for 1080p and high-DPI displays.
 - Updated the Chinese main window title to “视界守护” while keeping Chinese and English resources consistent.
+
+### 待发布功能 / Upcoming release notes
+
+**中文（简体）**
+
+- 新增事件回放库：陌生/已知目标状态变化和区域进入会自动保存快照与前后录像，支持播放、导出、删除和按保留期限清理。
+- 区域告警支持最多 20 个命名区域，可单独重画和删除；旧版单禁区设置会自动迁移。
+- 新增“人 + 车辆”检测模式，识别行人、自行车、汽车、摩托车、飞机、公交车、火车、卡车和船，并支持区域告警。
+
+**English (United States)**
+
+- Added a local event library. Recognition changes and zone entries save snapshots and surrounding video, with playback, export, deletion, and retention cleanup.
+- Added up to 20 named zones that can be redrawn or deleted individually; existing single-zone settings migrate automatically.
+- Added a People + Vehicles detection mode for people, bicycles, cars, motorcycles, airplanes, buses, trains, trucks, and boats, including zone alerts.
 
 ### 1.0.7.0 商店更新说明 / Store release notes
 
@@ -183,6 +199,12 @@ bird, cat, dog, horse, sheep, cow, elephant, bear, zebra, giraffe
 两个检测器在同一帧内顺序推理，结果合并后按类别去重，跟踪器按标签独立关联，
 因此同一个人脸和动物不会互相干扰。该模式全部使用内置模型，无需额外下载。
 
+## 人 + 车辆检测
+
+选择“人 + 车辆（内置 YOLOX）”后，应用复用随包提供的 COCO YOLOX 模型，检测行人、
+自行车、汽车、摩托车、飞机、公交车、火车、卡车和船。该模式不做人脸身份识别；区域告警会在
+横幅和事件录像中记录进入区域的目标类别及区域名称。
+
 ## 保存网络视频流
 
 点击主窗口的“设置”：
@@ -208,12 +230,26 @@ bird, cat, dog, horse, sheep, cow, elephant, bear, zebra, giraffe
 
 ### 禁区告警
 
-在“设置”→“告警”中点击“画禁区”，程序会打开当前预览画面。拖拽矩形框并确认后，
-禁区会绘制在视频画面上。检测到人脸、人或猫的跟踪目标进入禁区时，程序会播放提示音、
-显示告警横幅，并在识别记录中写入事件。禁区使用相对于画面的归一化坐标保存，切换摄像头
-分辨率后仍可继续使用。
+在“设置”→“告警”中添加区域，程序会打开当前预览画面。拖拽矩形框并确认后，
+区域会出现在列表中；最多可以设置 20 个区域，每个区域都可以命名、重画或单独删除。
+检测到人脸、人、猫或车辆的跟踪目标进入任一区域时，程序会播放提示音、显示带区域名称的
+告警横幅，并在识别记录中写入事件。
+区域使用相对于画面的归一化坐标保存，切换摄像头分辨率后仍可继续使用；旧版单区域设置会
+自动迁移为一个命名区域。
 
-点击“清除禁区”会先弹出确认提示；确认后立即清除并保存，不需要再点击设置窗口底部的“保存”。
+点击“清空全部”会先弹出确认提示；确认后立即清除并保存，不需要再点击设置窗口底部的“保存”。
+
+### 事件录像与回放
+
+主窗口点击“事件回放”可查看本机保存的识别状态变化和禁区进入事件。每组事件会保存一张快照和一个录像片段；片段最多包含触发前 5 秒，并在最后一次触发后继续录制 10 秒。10 秒内连续发生的事件会合并到同一片段，单段录像最长 2 分钟。
+
+事件录像以约 5 帧/秒采样，优先保存 MP4；当前系统不支持 MP4 编码时会尝试 AVI。录像包含应用绘制的检测框和禁区覆盖层。事件库支持播放、导出和删除，保留期限可选 3、7、14 或 30 天，默认 7 天，到期后自动清理记录、快照和录像。媒体默认保存在：
+
+```text
+%LocalAppData%\OpenCVCameraTracking\Events
+```
+
+该功能录制主窗口当前跟踪的视频源；多路预览窗口中的其他画面不会单独录制。录像编码或磁盘写入失败时，摄像头检测和通知仍会继续，事件库会显示可用的快照及媒体提示。
 
 ### 消息通知渠道
 
@@ -386,7 +422,7 @@ await engine.DisposeAsync();
 | --- | --- | --- |
 | `face_detection_yunet_2023mar.onnx` | 人脸检测 | 约 0.2 MB |
 | `face_recognition_sface_2021dec.onnx` | 人脸识别特征向量 | 约 37 MB |
-| `object_detection_yolox_2022nov_int8.onnx` | 动物检测 | 约 8.7 MB |
+| `object_detection_yolox_2022nov_int8.onnx` | COCO 人、动物和车辆检测 | 约 8.7 MB |
 | `haarcascade_frontalface_default.xml` | Haar 兼容检测 | 约 0.9 MB |
 
 这些模型会随应用一起分发，无需额外下载。模型目录同时包含对应许可证文本，来源与 SHA-256 见 `Assets/Models/README.txt`。

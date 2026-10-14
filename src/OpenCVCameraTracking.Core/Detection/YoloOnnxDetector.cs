@@ -26,6 +26,9 @@ public sealed class YoloOnnxDetector : IObjectDetector
     public static readonly string[] CocoAnimalLabels =
     ["bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe"];
 
+    public static readonly string[] CocoPersonVehicleLabels =
+    ["person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat"];
+
     private readonly Net _network;
     private readonly string[] _labels;
     private readonly HashSet<string>? _allowedLabels;

@@ -85,7 +85,11 @@
                         <ComboBoxItem Content="{DynamicResource FaceHaar}" Tag="Haar" />
                         <ComboBoxItem Content="{DynamicResource AnimalYolo}" Tag="Animal" />
                         <ComboBoxItem Content="{DynamicResource PersonAnimalMode}" Tag="PersonAnimal" />
+                        <ComboBoxItem Content="{DynamicResource PersonVehicleMode}" Tag="PersonVehicle" />
                     </ComboBox>
+                    <TextBlock x:Name="PersonVehicleModeHintText" Text="{DynamicResource PersonVehicleModeHint}"
+                               Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" FontSize="12"
+                               Margin="0,-4,0,8" Visibility="Collapsed" />
 
                     <StackPanel x:Name="ModelPanel" Visibility="Collapsed">
                         <TextBlock Text="{DynamicResource AnimalModel}" />
@@ -115,6 +119,8 @@
                     <Button Content="{DynamicResource ManageWhitelist}" Click="WhitelistButton_OnClick"
                             HorizontalAlignment="Stretch" Margin="0,1,0,4" />
                     <TextBlock x:Name="WhitelistSummaryText" Foreground="{DynamicResource AccentHighlightBrush}" Margin="2,0,0,6" />
+                    <Button Content="{DynamicResource EventLibrary}" Click="EventLibraryButton_OnClick"
+                            HorizontalAlignment="Stretch" Margin="0,1,0,8" />
                     <TextBlock Text="{DynamicResource RecognitionLog}" Margin="0,0,0,3" />
                     <ListBox x:Name="RecognitionLogBox" Height="92" Margin="0,0,0,8">
                         <ListBoxItem Content="{DynamicResource NoRecognitionEvents}" IsHitTestVisible="False"

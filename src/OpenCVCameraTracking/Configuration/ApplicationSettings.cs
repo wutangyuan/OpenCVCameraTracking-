@@ -24,7 +24,9 @@ public sealed class ApplicationSettings
     public List<string> MultiPreviewSourceKeys { get; set; } = [];
     public float FaceConfidence { get; set; } = 0.55f;
     public float AnimalConfidence { get; set; } = 0.35f;
+    public int EventRetentionDays { get; set; } = 7;
     public RestrictedZoneSettings? RestrictedZone { get; set; }
+    public List<RestrictedZoneSettings> RestrictedZones { get; set; } = [];
     public List<NotificationChannelSettings> NotificationChannels { get; set; } = [];
     public List<StreamProfile> Streams { get; set; } = [];
     public List<CameraDeviceProfile> CameraDevices { get; set; } = [];
@@ -35,6 +37,8 @@ public sealed class ApplicationSettings
 
 public sealed class RestrictedZoneSettings
 {
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public string Name { get; set; } = string.Empty;
     public double X { get; set; }
     public double Y { get; set; }
     public double Width { get; set; }
@@ -58,7 +62,7 @@ public sealed class RestrictedZoneSettings
     };
 
     public OpenCVCameraTracking.Core.RestrictedZone ToCore() =>
-        new((float)X, (float)Y, (float)Width, (float)Height);
+        new((float)X, (float)Y, (float)Width, (float)Height, Name, Id);
 }
 
 public sealed class StreamProfile

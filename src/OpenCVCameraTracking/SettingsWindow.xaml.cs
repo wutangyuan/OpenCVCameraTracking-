@@ -20,6 +20,7 @@ public partial class SettingsWindow : Window
     private readonly OnvifDiscoveryService _onvif = new();
     private readonly ObservableCollection<OnvifChoice> _onvifDevices = [];
     private readonly ObservableCollection<OnvifPresetInfo> _presets = [];
+    private readonly ObservableCollection<RestrictedZoneSettings> _restrictedZones;
     private readonly Func<Window, RestrictedZoneSettings?>? _selectRestrictedZone;
     private readonly Action? _clearRestrictedZoneImmediately;
     private readonly ObservableCollection<NotificationChannelSettings> _notificationChannels;
@@ -27,6 +28,7 @@ public partial class SettingsWindow : Window
     private readonly Action<IReadOnlyList<NotificationChannelSettings>>? _persistNotificationChannelsImmediately;
     private readonly string _initialThemeMode;
     private bool _initializingTheme;
+    private bool _updatingZoneName;
 
     public SettingsWindow(
         ApplicationSettings settings,
@@ -44,10 +46,13 @@ public partial class SettingsWindow : Window
         _persistNotificationChannelsImmediately = persistNotificationChannelsImmediately;
         _profiles = new ObservableCollection<StreamProfile>(Result.Streams);
         _cameraProfiles = new ObservableCollection<CameraDeviceProfile>(Result.CameraDevices);
+        _restrictedZones = new ObservableCollection<RestrictedZoneSettings>(Result.RestrictedZones);
         _notificationChannels = new ObservableCollection<NotificationChannelSettings>(Result.NotificationChannels);
         ProfilesBox.ItemsSource = _profiles;
         CameraProfilesBox.ItemsSource = _cameraProfiles;
         NotificationChannelsBox.ItemsSource = _notificationChannels;
+        RestrictedZonesBox.ItemsSource = _restrictedZones;
+        RestrictedZonesBox.DisplayMemberPath = nameof(RestrictedZoneSettings.Name);
         OnvifDevicesBox.ItemsSource = _onvifDevices;
         PresetsBox.ItemsSource = _presets;
         SelectComboTag(LanguageBox, Result.Language);
@@ -74,6 +79,10 @@ public partial class SettingsWindow : Window
         }
 
         UpdateConfidenceText();
+        if (_restrictedZones.Count > 0)
+        {
+            RestrictedZonesBox.SelectedIndex = 0;
+        }
         UpdateRestrictedZoneSummary();
         UpdateNotificationSummary();
     }
@@ -218,6 +227,12 @@ public partial class SettingsWindow : Window
 
     private void SetRestrictedZoneButton_OnClick(object sender, RoutedEventArgs e)
     {
+        if (_restrictedZones.Count >= 20)
+        {
+            ShowInformation("RestrictedZoneLimitReached");
+            return;
+        }
+
         if (_selectRestrictedZone is null)
         {
             ShowInformation("RestrictedZoneNoFrame");
@@ -230,7 +245,92 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        Result.RestrictedZone = zone;
+        var added = new RestrictedZoneSettings
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            Name = LocalizationManager.Format("RestrictedZoneDefaultName", _restrictedZones.Count + 1),
+            X = zone.X,
+            Y = zone.Y,
+            Width = zone.Width,
+            Height = zone.Height
+        };
+        _restrictedZones.Add(added);
+        RestrictedZonesBox.SelectedItem = added;
+        SyncRestrictedZones();
+        UpdateRestrictedZoneSummary();
+    }
+
+    private void EditRestrictedZoneButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (RestrictedZonesBox.SelectedItem is not RestrictedZoneSettings selected)
+        {
+            return;
+        }
+
+        if (_selectRestrictedZone is null)
+        {
+            ShowInformation("RestrictedZoneNoFrame");
+            return;
+        }
+
+        var edited = _selectRestrictedZone(this);
+        if (edited is null)
+        {
+            return;
+        }
+
+        selected.X = edited.X;
+        selected.Y = edited.Y;
+        selected.Width = edited.Width;
+        selected.Height = edited.Height;
+        SyncRestrictedZones();
+        UpdateRestrictedZoneSummary();
+    }
+
+    private void RestrictedZonesBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        _updatingZoneName = true;
+        ZoneNameBox.Text = (RestrictedZonesBox.SelectedItem as RestrictedZoneSettings)?.Name ?? string.Empty;
+        _updatingZoneName = false;
+        UpdateRestrictedZoneSummary();
+    }
+
+    private void ZoneNameBox_OnTextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_updatingZoneName || RestrictedZonesBox?.SelectedItem is not RestrictedZoneSettings selected)
+        {
+            return;
+        }
+
+        selected.Name = ZoneNameBox.Text.Trim();
+        RestrictedZonesBox.Items.Refresh();
+        SyncRestrictedZones();
+    }
+
+    private void DeleteRestrictedZoneButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (RestrictedZonesBox.SelectedItem is not RestrictedZoneSettings selected)
+        {
+            return;
+        }
+
+        var result = MessageBox.Show(
+            this,
+            LocalizationManager.Format("RestrictedZoneDeleteConfirm", selected.Name),
+            LocalizationManager.Get("RestrictedZoneDeleteTitle"),
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        var index = RestrictedZonesBox.SelectedIndex;
+        _restrictedZones.Remove(selected);
+        RestrictedZonesBox.SelectedIndex = _restrictedZones.Count == 0
+            ? -1
+            : Math.Min(index, _restrictedZones.Count - 1);
+        SyncRestrictedZones();
         UpdateRestrictedZoneSummary();
     }
 
@@ -247,18 +347,27 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        Result.RestrictedZone = null;
+        _restrictedZones.Clear();
+        SyncRestrictedZones();
         _clearRestrictedZoneImmediately?.Invoke();
         UpdateRestrictedZoneSummary();
     }
 
     private void UpdateRestrictedZoneSummary()
     {
-        RestrictedZoneSummaryText.Text = Result.RestrictedZone is { IsValid: true }
-            ? LocalizationManager.Get("RestrictedZoneConfigured")
+        RestrictedZoneSummaryText.Text = _restrictedZones.Count > 0
+            ? LocalizationManager.Format("RestrictedZoneConfigured", _restrictedZones.Count)
             : LocalizationManager.Get("RestrictedZoneNotSet");
         SetRestrictedZoneButton.IsEnabled = _selectRestrictedZone is not null;
-        ClearRestrictedZoneButton.IsEnabled = Result.RestrictedZone is { IsValid: true };
+        EditRestrictedZoneButton.IsEnabled = _selectRestrictedZone is not null && RestrictedZonesBox.SelectedItem is not null;
+        DeleteRestrictedZoneButton.IsEnabled = RestrictedZonesBox.SelectedItem is not null;
+        ClearRestrictedZoneButton.IsEnabled = _restrictedZones.Count > 0;
+    }
+
+    private void SyncRestrictedZones()
+    {
+        Result.RestrictedZones = _restrictedZones.ToList();
+        Result.RestrictedZone = Result.RestrictedZones.FirstOrDefault();
     }
 
     private void NotificationChannelsBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e) =>

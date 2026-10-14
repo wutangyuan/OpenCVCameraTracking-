@@ -200,15 +200,27 @@
                                     <StackPanel>
                                         <TextBlock x:Name="RestrictedZoneSummaryText" Foreground="{DynamicResource WarningBrush}"
                                                    TextWrapping="Wrap" />
-                                        <Grid Margin="0,12,0,0">
+                                        <ListBox x:Name="RestrictedZonesBox" Height="88" Margin="0,10,0,8"
+                                                 SelectionChanged="RestrictedZonesBox_OnSelectionChanged" />
+                                        <TextBlock Text="{DynamicResource RestrictedZoneName}" Margin="0,0,0,4" />
+                                        <TextBox x:Name="ZoneNameBox" TextChanged="ZoneNameBox_OnTextChanged" />
+                                        <Grid Margin="0,10,0,0">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="*" />
                                             </Grid.ColumnDefinitions>
                                             <Button x:Name="SetRestrictedZoneButton" Content="{DynamicResource SetRestrictedZone}"
-                                                    Click="SetRestrictedZoneButton_OnClick" Margin="0,0,4,0" />
-                                            <Button x:Name="ClearRestrictedZoneButton" Grid.Column="1" Content="{DynamicResource ClearRestrictedZone}"
-                                                    Click="ClearRestrictedZoneButton_OnClick" Margin="4,0,0,0" />
+                                                    Click="SetRestrictedZoneButton_OnClick" Margin="0,0,4,4" />
+                                            <Button x:Name="EditRestrictedZoneButton" Grid.Column="1" Content="{DynamicResource EditRestrictedZone}"
+                                                    Click="EditRestrictedZoneButton_OnClick" Margin="4,0,0,4" />
+                                            <Button x:Name="DeleteRestrictedZoneButton" Grid.Row="1" Content="{DynamicResource DeleteRestrictedZone}"
+                                                    Click="DeleteRestrictedZoneButton_OnClick" Margin="0,4,4,0" />
+                                            <Button x:Name="ClearRestrictedZoneButton" Grid.Row="1" Grid.Column="1" Content="{DynamicResource ClearRestrictedZone}"
+                                                    Click="ClearRestrictedZoneButton_OnClick" Margin="4,4,0,0" />
                                         </Grid>
                                     </StackPanel>
                                 </Border>
@@ -280,7 +292,7 @@
                                         IsSnapToTickEnabled="True" ValueChanged="ConfidenceSlider_OnValueChanged" Margin="0,7,0,18" />
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                    <TextBlock Text="{DynamicResource AnimalConfidence}" />
+                                    <TextBlock Text="{DynamicResource ObjectConfidence}" />
                                     <TextBlock x:Name="AnimalConfidenceText" Grid.Column="1" Foreground="{DynamicResource AccentHighlightBrush}" />
                                 </Grid>
                                 <Slider x:Name="AnimalConfidenceSlider" Minimum="0.15" Maximum="0.8" TickFrequency="0.05"

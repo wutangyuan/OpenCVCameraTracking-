@@ -7,7 +7,13 @@ namespace OpenCVCameraTracking.Core;
 /// A restricted zone stored in frame-relative coordinates. Keeping the values
 /// normalized means a zone survives a camera resolution change.
 /// </summary>
-public sealed record RestrictedZone(float X, float Y, float Width, float Height)
+public sealed record RestrictedZone(
+    float X,
+    float Y,
+    float Width,
+    float Height,
+    string Name = "Zone",
+    string Id = "")
 {
     public bool IsValid =>
         !float.IsNaN(X) && !float.IsInfinity(X) &&
@@ -35,9 +41,11 @@ public sealed record RestrictedZone(float X, float Y, float Width, float Height)
 public sealed class RestrictedZoneAlertEventArgs(
     TrackedObject target,
     Rect zone,
-    DateTimeOffset timestamp) : EventArgs
+    DateTimeOffset timestamp,
+    string zoneName = "Zone") : EventArgs
 {
     public TrackedObject Target { get; } = target;
     public Rect Zone { get; } = zone;
     public DateTimeOffset Timestamp { get; } = timestamp;
+    public string ZoneName { get; } = zoneName;
 }

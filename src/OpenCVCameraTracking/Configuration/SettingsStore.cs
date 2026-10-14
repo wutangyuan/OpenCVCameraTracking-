@@ -83,10 +83,41 @@ public static class SettingsStore
         settings.SelectedStreamVariant = settings.SelectedStreamVariant is "Sub" ? "Sub" : "Main";
         settings.FaceConfidence = Math.Clamp(settings.FaceConfidence, 0.3f, 0.95f);
         settings.AnimalConfidence = Math.Clamp(settings.AnimalConfidence, 0.15f, 0.9f);
+        settings.EventRetentionDays = settings.EventRetentionDays is 3 or 7 or 14 or 30
+            ? settings.EventRetentionDays
+            : 7;
+        settings.RestrictedZones ??= [];
+        settings.RestrictedZones = settings.RestrictedZones
+            .Where(zone => zone is not null && zone.IsValid)
+            .Take(20)
+            .Select((zone, index) =>
+            {
+                zone.Id = string.IsNullOrWhiteSpace(zone.Id) ? Guid.NewGuid().ToString("N") : zone.Id.Trim();
+                zone.Name = string.IsNullOrWhiteSpace(zone.Name)
+                    ? $"{(settings.Language == "en-US" ? "Zone" : "区域")} {index + 1}"
+                    : zone.Name.Trim();
+                return zone;
+            })
+            .GroupBy(zone => zone.Id, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .ToList();
+        if (settings.RestrictedZones.Count == 0 && settings.RestrictedZone is { IsValid: true } legacyZone)
+        {
+            settings.RestrictedZones.Add(new RestrictedZoneSettings
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Name = settings.Language == "en-US" ? "Zone 1" : "区域 1",
+                X = legacyZone.X,
+                Y = legacyZone.Y,
+                Width = legacyZone.Width,
+                Height = legacyZone.Height
+            });
+        }
         if (settings.RestrictedZone is not null && !settings.RestrictedZone.IsValid)
         {
             settings.RestrictedZone = null;
         }
+        settings.RestrictedZone = settings.RestrictedZones.FirstOrDefault();
         settings.Streams ??= [];
         settings.CameraDevices ??= [];
         settings.LayoutStreamIds ??= [];

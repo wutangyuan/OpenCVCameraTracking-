@@ -30,6 +30,7 @@ public partial class MainWindow : Window
     private ApplicationSettings _settings;
     private readonly WhitelistRecognitionService _whitelistRecognition = new();
     private readonly RecognitionEventStore _recognitionEventStore = new();
+    private readonly CameraEventStore _cameraEventStore = new();
     private readonly NotificationService _notificationService = new();
     private readonly Dictionary<int, string> _recognitionStates = [];
     private readonly List<RecentRecognitionEvent> _recentRecognitionEvents = [];
@@ -41,6 +42,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _unknownAlertTimer;
     private readonly DispatcherTimer _restrictedZoneAlertTimer;
     private CameraTrackingEngine? _engine;
+    private EventRecordingService? _eventRecordingService;
     private CameraSourceOptions? _activeSourceOptions;
     private WriteableBitmap? _previewBitmap;
     private int _renderPending;
@@ -79,6 +81,15 @@ public partial class MainWindow : Window
         };
         _storeUpdateTimer.Tick += StoreUpdateTimerOnTick;
         _settings = ((App)Application.Current).Settings;
+        try
+        {
+            _cameraEventStore.Load(_settings.EventRetentionDays);
+        }
+        catch (Exception exception)
+        {
+            AppLogger.Error("Unable to apply camera event retention", exception);
+        }
+
         ApplySettingsToUi();
         RefreshVersionDisplay();
         Loaded += MainWindowOnLoaded;
@@ -251,12 +262,13 @@ public partial class MainWindow : Window
             var tracker = new IouMultiObjectTracker(minimumIou: 0.18f, maximumMisses: 8, smoothing: 0.72f);
             _recognitionStates.Clear();
             _recentRecognitionEvents.Clear();
+            _eventRecordingService = new EventRecordingService(_cameraEventStore, GetCurrentSourceName());
             _engine = new CameraTrackingEngine(
                 detector,
                 detectionInterval: 1,
                 tracker: tracker,
                 whitelistRecognition: _whitelistRecognition,
-                restrictedZone: ToCoreRestrictedZone(_settings.RestrictedZone));
+                restrictedZones: ToCoreRestrictedZones(_settings.RestrictedZones));
             _engine.FrameReady += EngineOnFrameReady;
             _engine.StatusChanged += EngineOnStatusChanged;
             _engine.SourceStatusChanged += EngineOnSourceStatusChanged;
@@ -324,8 +336,18 @@ public partial class MainWindow : Window
                     _settings.FaceConfidence),
                 CreateAnimalDetector()
             ]),
+            "PersonVehicle" => CreatePersonVehicleDetector(),
             _ => throw new InvalidOperationException(LocalizationManager.Get("UnknownDetectionMode"))
         };
+    }
+
+    private IObjectDetector CreatePersonVehicleDetector()
+    {
+        var modelDirectory = Path.Combine(AppContext.BaseDirectory, "Assets", "Models");
+        return new YoloXOnnxDetector(
+            Path.Combine(modelDirectory, "object_detection_yolox_2022nov_int8.onnx"),
+            allowedLabels: YoloOnnxDetector.CocoPersonVehicleLabels,
+            confidenceThreshold: _settings.AnimalConfidence);
     }
 
     private IObjectDetector CreateAnimalDetector()
@@ -398,6 +420,12 @@ public partial class MainWindow : Window
 
     private void EngineOnFrameReady(object? sender, FrameReadyEventArgs e)
     {
+        if (!ReferenceEquals(sender, _engine))
+        {
+            return;
+        }
+
+        _eventRecordingService?.ObserveFrame(e);
         if (Interlocked.Exchange(ref _renderPending, 1) == 1)
         {
             return;
@@ -444,7 +472,7 @@ public partial class MainWindow : Window
                     e.SourceLatencyMilliseconds,
                     e.Width,
                     e.Height);
-                HandleRecognitionEvents(e.Objects);
+                HandleRecognitionEvents(e.Objects, e.CapturedAt);
             }
             finally
             {
@@ -498,10 +526,21 @@ public partial class MainWindow : Window
                 return;
             }
 
-            var subject = e.Target.Label.Equals("cat", StringComparison.OrdinalIgnoreCase)
-                ? LocalizationManager.Get("RestrictedZoneCat")
-                : LocalizationManager.Get("RestrictedZonePerson");
-            var description = LocalizationManager.Format("RestrictedZoneAlert", subject);
+            var subject = LocalizationManager.Get(e.Target.Label.ToLowerInvariant() switch
+            {
+                "cat" => "RestrictedZoneCat",
+                "bicycle" => "RestrictedZoneBicycle",
+                "car" => "RestrictedZoneCar",
+                "motorcycle" => "RestrictedZoneMotorcycle",
+                "airplane" => "RestrictedZoneAirplane",
+                "bus" => "RestrictedZoneBus",
+                "train" => "RestrictedZoneTrain",
+                "truck" => "RestrictedZoneTruck",
+                "boat" => "RestrictedZoneBoat",
+                _ => "RestrictedZonePerson"
+            });
+            var description = LocalizationManager.Format("RestrictedZoneAlertNamed", subject, e.ZoneName);
+            _eventRecordingService?.TriggerEvent(e.Timestamp, description);
             RestrictedZoneAlertText.Text = description;
             RestrictedZoneAlertBanner.Visibility = Visibility.Visible;
             _restrictedZoneAlertTimer.Stop();
@@ -580,6 +619,8 @@ public partial class MainWindow : Window
     {
         var engine = _engine;
         _engine = null;
+        var eventRecordingService = _eventRecordingService;
+        _eventRecordingService = null;
         if (engine is not null)
         {
             AppLogger.Info("Stopping tracking engine");
@@ -588,7 +629,26 @@ public partial class MainWindow : Window
             engine.SourceStatusChanged -= EngineOnSourceStatusChanged;
             engine.Faulted -= EngineOnFaulted;
             engine.RestrictedZoneAlerted -= EngineOnRestrictedZoneAlerted;
-            await engine.DisposeAsync();
+            try
+            {
+                await engine.DisposeAsync();
+            }
+            catch (Exception exception)
+            {
+                AppLogger.Error("Unable to stop the camera tracking engine", exception);
+            }
+        }
+
+        if (eventRecordingService is not null)
+        {
+            try
+            {
+                await eventRecordingService.DisposeAsync();
+            }
+            catch (Exception exception)
+            {
+                AppLogger.Error("Unable to finalize camera event recording", exception);
+            }
         }
 
         StartButton.IsEnabled = true;
@@ -882,6 +942,9 @@ public partial class MainWindow : Window
         CustomModelPanel.Visibility = animalMode && SelectedTag(AnimalModelBox) == "Custom"
             ? Visibility.Visible
             : Visibility.Collapsed;
+        PersonVehicleModeHintText.Visibility = detectionTag == "PersonVehicle"
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private async void RefreshDevicesButton_OnClick(object sender, RoutedEventArgs e) => await RefreshDevicesAsync();
@@ -951,8 +1014,9 @@ public partial class MainWindow : Window
     private void ClearRestrictedZoneImmediately()
     {
         _settings.RestrictedZone = null;
+        _settings.RestrictedZones.Clear();
         SaveSettings();
-        _engine?.SetRestrictedZone(null);
+        _engine?.SetRestrictedZones([]);
         _restrictedZoneAlertTimer.Stop();
         RestrictedZoneAlertBanner.Visibility = Visibility.Collapsed;
     }
@@ -998,7 +1062,7 @@ public partial class MainWindow : Window
             : null;
     }
 
-    private void HandleRecognitionEvents(IReadOnlyList<TrackedObject> objects)
+    private void HandleRecognitionEvents(IReadOnlyList<TrackedObject> objects, DateTimeOffset capturedAt)
     {
         foreach (var item in objects.Where(candidate => candidate.IsKnown.HasValue))
         {
@@ -1030,7 +1094,7 @@ public partial class MainWindow : Window
                     : "UnknownCatAlert");
 
             var eventRecord = new RecognitionEventRecord(
-                DateTimeOffset.Now,
+                capturedAt.ToLocalTime(),
                 kind,
                 item.IdentityName,
                 item.IsKnown == true,
@@ -1081,7 +1145,45 @@ public partial class MainWindow : Window
                     new NotificationMessage(LocalizationManager.Get("UnknownRecognitionNotificationTitle"), notificationBody));
                 _ = ObserveBackgroundTaskAsync(notificationTask, "Unknown-recognition notification dispatch failed");
             }
+
+            _eventRecordingService?.TriggerEvent(capturedAt, description);
         }
+    }
+
+    private string GetCurrentSourceName()
+    {
+        if (SelectedTag(SourceKindBox) == "Device" && DeviceBox.SelectedItem is CameraDeviceInfo device)
+        {
+            return device.Name;
+        }
+
+        if (SelectedTag(SourceKindBox) == "Stream" && StreamProfileBox.SelectedItem is StreamChoice stream)
+        {
+            return stream.Name;
+        }
+
+        if (SelectedTag(SourceKindBox) == "File" && !string.IsNullOrWhiteSpace(AddressBox.Text))
+        {
+            return Path.GetFileName(AddressBox.Text.Trim());
+        }
+
+        return LocalizationManager.Get("EventCurrentSource");
+    }
+
+    private void EventLibraryButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var window = new EventLibraryWindow(
+            _cameraEventStore,
+            _settings.EventRetentionDays,
+            retentionDays =>
+            {
+                _settings.EventRetentionDays = retentionDays;
+                SaveSettings();
+            })
+        {
+            Owner = this
+        };
+        window.ShowDialog();
     }
 
     private bool IsDuplicateRecognitionEvent(TrackedObject item, string state)
@@ -1140,7 +1242,7 @@ public partial class MainWindow : Window
 
             MetricsText.Text = LocalizationManager.Format("MetricsFormat", 0d, 0);
             UpdateWhitelistSummary();
-            _engine?.SetRestrictedZone(ToCoreRestrictedZone(_settings.RestrictedZone));
+            _engine?.SetRestrictedZones(ToCoreRestrictedZones(_settings.RestrictedZones));
         }
         finally
         {
@@ -1187,8 +1289,8 @@ public partial class MainWindow : Window
         AppLogger.Info("Application settings persisted");
     }
 
-    private static RestrictedZone? ToCoreRestrictedZone(RestrictedZoneSettings? settings) =>
-        settings is { IsValid: true } ? settings.ToCore() : null;
+    private static IReadOnlyList<RestrictedZone> ToCoreRestrictedZones(IEnumerable<RestrictedZoneSettings>? settings) =>
+        settings?.Where(zone => zone is { IsValid: true }).Select(zone => zone.ToCore()).ToArray() ?? [];
 
     private static string SelectedTag(ComboBox comboBox) =>
         (comboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? string.Empty;
