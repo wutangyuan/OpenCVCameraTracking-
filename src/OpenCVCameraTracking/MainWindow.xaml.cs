@@ -99,44 +99,110 @@ public partial class MainWindow : Window
     {
         Loaded -= MainWindowOnLoaded;
         await RefreshDevicesAsync();
-        await CheckForStoreUpdateAsync();
+        await CheckForStoreUpdateAsync(StoreUpdateCheckSource.Startup);
         _storeUpdateTimer.Start();
     }
 
     private async void StoreUpdateTimerOnTick(object? sender, EventArgs e)
     {
-        await CheckForStoreUpdateAsync();
+        await CheckForStoreUpdateAsync(StoreUpdateCheckSource.Timer);
     }
 
-    private async Task CheckForStoreUpdateAsync()
+    private async void CheckUpdatesButton_OnClick(object sender, RoutedEventArgs e)
     {
-        if (_isClosing || _storeUpdateCheckRunning)
+        await CheckForStoreUpdateAsync(StoreUpdateCheckSource.Manual);
+    }
+
+    private async Task CheckForStoreUpdateAsync(StoreUpdateCheckSource source)
+    {
+        if (_isClosing)
         {
+            AppLogger.Info($"Microsoft Store update check skipped: source={source}, reason=application-closing");
             return;
         }
 
+        if (_storeUpdateCheckRunning)
+        {
+            AppLogger.Info($"Microsoft Store update check skipped: source={source}, reason=check-already-running");
+            return;
+        }
+
+        var isManual = source == StoreUpdateCheckSource.Manual;
         _storeUpdateCheckRunning = true;
+        CheckUpdatesButton.IsEnabled = false;
+        if (isManual)
+        {
+            UpdateCheckStatusText.Text = LocalizationManager.Get("CheckingForUpdates");
+            UpdateCheckStatusText.Visibility = Visibility.Visible;
+        }
+
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-            StoreUpdateInfo? update;
+            StoreUpdateCheckResult result;
             try
             {
-                update = await _storeUpdateChecker.CheckAsync(timeout.Token);
+                result = await _storeUpdateChecker.CheckAsync(source, timeout.Token);
             }
             catch (OperationCanceledException)
             {
-                // A slow/offline network must never interrupt the camera UI.
+                AppLogger.Warn(
+                    $"Microsoft Store update check result: status=TimedOut, source={source}, timeoutSeconds=8");
+                if (isManual)
+                {
+                    UpdateCheckStatusText.Text = LocalizationManager.Get("UpdateCheckTimedOut");
+                }
+
                 return;
             }
 
+            if (result.Status == StoreUpdateCheckStatus.NoUpdate)
+            {
+                if (isManual)
+                {
+                    UpdateCheckStatusText.Text = LocalizationManager.Get("UpdateCheckNoUpdate");
+                }
+
+                return;
+            }
+
+            if (result.Status == StoreUpdateCheckStatus.NoPackageIdentity)
+            {
+                if (isManual)
+                {
+                    UpdateCheckStatusText.Text = LocalizationManager.Get("UpdateCheckNoPackageIdentity");
+                }
+
+                return;
+            }
+
+            if (result.Status == StoreUpdateCheckStatus.Failed)
+            {
+                if (isManual)
+                {
+                    UpdateCheckStatusText.Text = LocalizationManager.Get("UpdateCheckFailed");
+                }
+
+                return;
+            }
+
+            var update = result.Update;
             if (update is null)
             {
+                AppLogger.Error(
+                    $"Microsoft Store update check returned status={result.Status} without update details: source={source}");
+                if (isManual)
+                {
+                    UpdateCheckStatusText.Text = LocalizationManager.Get("UpdateCheckFailed");
+                }
+
                 return;
             }
 
-            if (IsUpdateDismissed(update))
+            if (!isManual && IsUpdateDismissed(update))
             {
+                AppLogger.Info(
+                    $"Microsoft Store update available but reminder is dismissed for this session: source={source}, current={update.CurrentVersion}, available={update.AvailableVersion}");
                 return;
             }
 
@@ -145,14 +211,32 @@ public partial class MainWindow : Window
             _pendingStoreUpdate = update;
             RefreshVersionDisplay(update);
             UpdateBanner.Visibility = Visibility.Visible;
+            if (isManual)
+            {
+                UpdateCheckStatusText.Text = LocalizationManager.Format(
+                    "UpdateCheckAvailable",
+                    update.AvailableVersion.ToString(4));
+            }
+
             if (isNewUpdate)
             {
                 AppLogger.Info($"Microsoft Store update available: current={update.CurrentVersion}, available={update.AvailableVersion}");
             }
         }
+        catch (Exception exception)
+        {
+            AppLogger.Error(
+                $"Microsoft Store update check result: status=Failed, source={source}, stage=ui-processing, exceptionType={exception.GetType().FullName}, message={exception.Message}",
+                exception);
+            if (isManual)
+            {
+                UpdateCheckStatusText.Text = LocalizationManager.Get("UpdateCheckFailed");
+            }
+        }
         finally
         {
             _storeUpdateCheckRunning = false;
+            CheckUpdatesButton.IsEnabled = true;
         }
     }
 
@@ -172,7 +256,7 @@ public partial class MainWindow : Window
         {
             Process.Start(new ProcessStartInfo
             {
-                FileName = _pendingStoreUpdate?.StoreUrl ?? "ms-windows-store://search/?query=CameraTracking",
+                FileName = _pendingStoreUpdate?.StoreUrl ?? StoreUpdateChecker.StoreProductUrl,
                 UseShellExecute = true
             });
             AppLogger.Info("User opened Microsoft Store update link");

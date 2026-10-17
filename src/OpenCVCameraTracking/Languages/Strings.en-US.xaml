@@ -5,6 +5,13 @@
     <sys:String x:Key="VersionLabel">Version {0}</sys:String>
     <sys:String x:Key="UpdateAvailable">New version available</sys:String>
     <sys:String x:Key="OpenStore">Open Microsoft Store</sys:String>
+    <sys:String x:Key="CheckForUpdates">Check for updates</sys:String>
+    <sys:String x:Key="CheckingForUpdates">Checking for updates…</sys:String>
+    <sys:String x:Key="UpdateCheckNoUpdate">No update is currently available.</sys:String>
+    <sys:String x:Key="UpdateCheckAvailable">Update available: {0}</sys:String>
+    <sys:String x:Key="UpdateCheckFailed">Update check failed. See the application log for details.</sys:String>
+    <sys:String x:Key="UpdateCheckNoPackageIdentity">This running app has no Store package identity and cannot check for updates.</sys:String>
+    <sys:String x:Key="UpdateCheckTimedOut">The update check timed out. Try again later.</sys:String>
     <sys:String x:Key="VideoSource">Video source</sys:String>
     <sys:String x:Key="SourceType">Source type</sys:String>
     <sys:String x:Key="LocalCamera">Local camera</sys:String>

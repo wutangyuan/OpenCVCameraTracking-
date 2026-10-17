@@ -5,6 +5,13 @@
     <sys:String x:Key="VersionLabel">版本 {0}</sys:String>
     <sys:String x:Key="UpdateAvailable">发现新版本</sys:String>
     <sys:String x:Key="OpenStore">打开微软商店</sys:String>
+    <sys:String x:Key="CheckForUpdates">检查更新</sys:String>
+    <sys:String x:Key="CheckingForUpdates">正在检查更新…</sys:String>
+    <sys:String x:Key="UpdateCheckNoUpdate">当前没有可用更新。</sys:String>
+    <sys:String x:Key="UpdateCheckAvailable">发现可用更新：{0}</sys:String>
+    <sys:String x:Key="UpdateCheckFailed">检查更新失败，详情请查看应用日志。</sys:String>
+    <sys:String x:Key="UpdateCheckNoPackageIdentity">当前运行版本没有 Store 包身份，无法检查更新。</sys:String>
+    <sys:String x:Key="UpdateCheckTimedOut">检查更新超时，请稍后重试。</sys:String>
     <sys:String x:Key="VideoSource">视频源</sys:String>
     <sys:String x:Key="SourceType">来源类型</sys:String>
     <sys:String x:Key="LocalCamera">本地摄像头</sys:String>

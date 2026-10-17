@@ -4,7 +4,7 @@
   <img src="src/OpenCVCameraTracking/Assets/AppIcon.png" alt="OpenCVCameraTracking icon" width="180" />
 </p>
 
-> **v1.0.9.0 / 版本 1.0.9.0** — 优化事件回放的资源管理、缩略图加载与实时更新，并提升高负载下的录像保存稳定性。Improves event playback resource management, thumbnail loading and live updates, and recording reliability under load.
+> **v1.0.10.0 / 版本 1.0.10.0** — 新增手动检查商店更新和完整诊断日志，并直达应用的微软商店页面。Adds manual Store update checks with complete diagnostics and a direct link to the Microsoft Store listing.
 
 基于 `.NET 8 + WPF + OpenCvSharp` 的实时摄像头组件。核心采集、检测和跟踪逻辑位于
 `OpenCVCameraTracking.Core`，WPF 界面与设置管理位于 `OpenCVCameraTracking`。
@@ -56,6 +56,20 @@ dotnet run --project src/OpenCVCameraTracking/OpenCVCameraTracking.csproj
 主窗口左侧显示当前程序版本。已通过 Microsoft Store 安装的 MSIX 包会在启动时，以及程序持续运行期间每 30 分钟，通过 Windows 的 `StoreContext` 查询该账户实际可获得的更新；仅当新包已由 Microsoft Store 发布并可用时，才会在预览区右上角显示更新卡片。点击按钮会打开 Microsoft Store；用户关闭提示后，本次运行不再提醒，重启应用后仍会重新检查。Partner Center 中“正在认证”或尚未发布的包不会触发提示。
 
 仓库根目录的 `update-manifest.json` 仅为早期版本的兼容清单，不再作为当前版本的正式更新来源；请勿根据它发布或判断商店版本。
+
+### 1.0.10.0 商店更新说明 / Store release notes
+
+**中文（简体）**
+
+- 新增手动检查更新按钮，并显示检查中、无可用更新、发现更新、失败或超时状态。
+- 记录启动、定时和手动检查的结果，包括包身份、签名类型、商店返回的包版本及错误信息。
+- 校验应用包名和发布者与微软商店产品身份一致，并将商店按钮直达 CameraTracking 产品页。
+
+**English (United States)**
+
+- Added a manual Check for updates button with clear checking, no update, update available, failure, and timeout states.
+- Added diagnostics for startup, scheduled, and manual checks, including package identity, signature type, Store package versions, and errors.
+- Validate the package name and publisher against the Microsoft Store identity and link directly to the CameraTracking Store listing.
 
 ### 1.0.9.0 商店更新说明 / Store release notes
 

@@ -25,7 +25,13 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="{DynamicResource VideoSource}" FontSize="21" FontWeight="SemiBold" />
-                            <TextBlock x:Name="VersionText" Foreground="{DynamicResource SubtleTextBrush}" FontSize="11" Margin="0,2,0,0" />
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                <TextBlock x:Name="VersionText" Foreground="{DynamicResource SubtleTextBrush}" FontSize="11" VerticalAlignment="Center" />
+                                <Button x:Name="CheckUpdatesButton" Content="{DynamicResource CheckForUpdates}"
+                                        Click="CheckUpdatesButton_OnClick" Padding="7,2" Margin="8,-2,0,0" FontSize="11" />
+                            </StackPanel>
+                            <TextBlock x:Name="UpdateCheckStatusText" Foreground="{DynamicResource MutedTextBrush}"
+                                       FontSize="10" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,3,0,0" />
                         </StackPanel>
                         <Button Grid.Column="1" Content="{DynamicResource Settings}" Click="SettingsButton_OnClick"
                                 Padding="11,7" Margin="6,0,0,0" />
