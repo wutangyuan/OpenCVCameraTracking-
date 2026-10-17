@@ -4,7 +4,7 @@
   <img src="src/OpenCVCameraTracking/Assets/AppIcon.png" alt="OpenCVCameraTracking icon" width="180" />
 </p>
 
-> **v1.0.8.0 / 版本 1.0.8.0** — 增加系统/手动主题模式、主题控件适配、多路预览复用主摄像头帧，并优化设置窗口布局。Adds system/manual theme modes, theme-aware controls, main-camera frame reuse in multi-camera preview, and improved settings layout.
+> **v1.0.9.0 / 版本 1.0.9.0** — 优化事件回放的资源管理、缩略图加载与实时更新，并提升高负载下的录像保存稳定性。Improves event playback resource management, thumbnail loading and live updates, and recording reliability under load.
 
 基于 `.NET 8 + WPF + OpenCvSharp` 的实时摄像头组件。核心采集、检测和跟踪逻辑位于
 `OpenCVCameraTracking.Core`，WPF 界面与设置管理位于 `OpenCVCameraTracking`。
@@ -57,6 +57,24 @@ dotnet run --project src/OpenCVCameraTracking/OpenCVCameraTracking.csproj
 
 仓库根目录的 `update-manifest.json` 仅为早期版本的兼容清单，不再作为当前版本的正式更新来源；请勿根据它发布或判断商店版本。
 
+### 1.0.9.0 商店更新说明 / Store release notes
+
+**中文（简体）**
+
+- 优化事件回放列表：新事件会立即显示录制状态，录像和快照完成后自动更新，无需重新打开窗口。
+- 按需加载并缩小事件缩略图，关闭回放窗口时释放图像和列表资源，降低长时间浏览的内存占用。
+- 限制录像编码队列；系统繁忙时优先保留事件快照，避免录像任务积压造成内存持续增长。
+- 改进事件媒体清理：删除失败时保留记录以便重试，并安全清理长期未被引用的媒体文件。
+- 改进事件快照选帧，降低暗光或瞬时黑帧导致缩略图过暗的情况；增强禁区告警横幅的可见性。
+
+**English (United States)**
+
+- Improved the event library so new events appear immediately with a recording status, then update automatically when snapshots and clips are ready.
+- Load smaller event thumbnails on demand and release image and list resources when the playback window closes to reduce memory use during long sessions.
+- Bounded the video-encoding queue. When the system is busy, event snapshots are retained without queuing additional clips, preventing sustained memory growth.
+- Improved event media cleanup: failed deletions remain eligible for retry, and old unreferenced media is cleaned up safely.
+- Improved snapshot selection in low-light or transient dark-frame conditions and increased the visibility of restricted-zone alert banners.
+
 ### 1.0.8.0 商店更新说明 / Store release notes
 
 **中文（简体）**
@@ -66,6 +84,9 @@ dotnet run --project src/OpenCVCameraTracking/OpenCVCameraTracking.csproj
 - 多路预览遇到当前主摄像头时复用主窗口帧，避免重复打开摄像头，关闭多路预览不会断开主摄像头。
 - 优化设置窗口默认尺寸和内容布局，改善 1080p 及高 DPI 显示器下的可用性。
 - 中文界面主窗口标题更新为“视界守护”，并保持中英文资源统一。
+- 新增事件回放库：陌生/已知目标状态变化和区域进入会自动保存快照与前后录像，支持播放、导出、删除和按保留期限清理。
+- 区域告警支持最多 20 个命名区域，可单独重画和删除；旧版单禁区设置会自动迁移。
+- 新增“人 + 车辆”检测模式，识别行人、自行车、汽车、摩托车、飞机、公交车、火车、卡车和船，并支持区域告警。
 
 **English (United States)**
 
@@ -74,17 +95,6 @@ dotnet run --project src/OpenCVCameraTracking/OpenCVCameraTracking.csproj
 - Multi-camera preview now reuses the main window frame when the current main camera is selected, avoiding duplicate camera access and preventing the main camera from disconnecting when preview closes.
 - Improved the default Settings window size and layout for 1080p and high-DPI displays.
 - Updated the Chinese main window title to “视界守护” while keeping Chinese and English resources consistent.
-
-### 待发布功能 / Upcoming release notes
-
-**中文（简体）**
-
-- 新增事件回放库：陌生/已知目标状态变化和区域进入会自动保存快照与前后录像，支持播放、导出、删除和按保留期限清理。
-- 区域告警支持最多 20 个命名区域，可单独重画和删除；旧版单禁区设置会自动迁移。
-- 新增“人 + 车辆”检测模式，识别行人、自行车、汽车、摩托车、飞机、公交车、火车、卡车和船，并支持区域告警。
-
-**English (United States)**
-
 - Added a local event library. Recognition changes and zone entries save snapshots and surrounding video, with playback, export, deletion, and retention cleanup.
 - Added up to 20 named zones that can be redrawn or deleted individually; existing single-zone settings migrate automatically.
 - Added a People + Vehicles detection mode for people, bicycles, cars, motorcycles, airplanes, buses, trains, trucks, and boats, including zone alerts.

@@ -5,6 +5,7 @@
 *.user
 *.suo
 work/
+/specs/
 src/OpenCVCameraTracking.Package/StoreIdentity.props
 src/OpenCVCameraTracking.Package/*.pfx
 src/OpenCVCameraTracking.Package/Certificates/

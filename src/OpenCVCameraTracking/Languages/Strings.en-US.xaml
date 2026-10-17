@@ -318,8 +318,12 @@
     <sys:String x:Key="EventExport">Export clip</sys:String>
     <sys:String x:Key="EventDelete">Delete event</sys:String>
     <sys:String x:Key="EventDetailsFormat">Time: {0:yyyy-MM-dd HH:mm:ss}{1}Source: {2}{1}Event: {3}{1}Clip length: {4:F0} sec</sys:String>
+    <sys:String x:Key="EventPendingDetailsFormat">Time: {0:yyyy-MM-dd HH:mm:ss}{1}Source: {2}{1}Event: {3}</sys:String>
     <sys:String x:Key="EventMediaError">Media note:</sys:String>
+    <sys:String x:Key="EventClipSkippedDueToLoad">The system was busy, so only the snapshot was saved for this event.</sys:String>
     <sys:String x:Key="EventNoSummary">Camera event</sys:String>
+    <sys:String x:Key="EventRecordingStatus">Recording</sys:String>
+    <sys:String x:Key="EventRecordingPending">Recording the following moments. The snapshot and clip will appear automatically when ready.</sys:String>
     <sys:String x:Key="EventCurrentSource">Current source</sys:String>
     <sys:String x:Key="EventExportTitle">Export event clip</sys:String>
     <sys:String x:Key="EventExportDone">The clip was exported.</sys:String>

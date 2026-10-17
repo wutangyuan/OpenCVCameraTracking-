@@ -318,8 +318,12 @@
     <sys:String x:Key="EventExport">导出录像</sys:String>
     <sys:String x:Key="EventDelete">删除事件</sys:String>
     <sys:String x:Key="EventDetailsFormat">时间：{0:yyyy-MM-dd HH:mm:ss}{1}来源：{2}{1}事件：{3}{1}录像时长：{4:F0} 秒</sys:String>
+    <sys:String x:Key="EventPendingDetailsFormat">时间：{0:yyyy-MM-dd HH:mm:ss}{1}来源：{2}{1}事件：{3}</sys:String>
     <sys:String x:Key="EventMediaError">媒体提示：</sys:String>
+    <sys:String x:Key="EventClipSkippedDueToLoad">系统繁忙，此事件仅保存了快照，未生成录像。</sys:String>
     <sys:String x:Key="EventNoSummary">摄像头事件</sys:String>
+    <sys:String x:Key="EventRecordingStatus">录制中</sys:String>
+    <sys:String x:Key="EventRecordingPending">正在录制后续画面，完成后会自动显示快照和录像。</sys:String>
     <sys:String x:Key="EventCurrentSource">当前视频源</sys:String>
     <sys:String x:Key="EventExportTitle">导出事件录像</sys:String>
     <sys:String x:Key="EventExportDone">录像已导出。</sys:String>

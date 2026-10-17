@@ -1179,7 +1179,8 @@ public partial class MainWindow : Window
             {
                 _settings.EventRetentionDays = retentionDays;
                 SaveSettings();
-            })
+            },
+            _eventRecordingService)
         {
             Owner = this
         };

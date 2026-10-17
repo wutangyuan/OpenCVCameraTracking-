@@ -19,8 +19,11 @@ public sealed class EventRecordingService : IAsyncDisposable
     private static readonly TimeSpan PostEventDuration = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan FrameBufferDuration = PreEventDuration + PostEventDuration;
     private static readonly TimeSpan MaximumClipDuration = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan SnapshotEventWindow = TimeSpan.FromSeconds(2);
     private const double ClipFramesPerSecond = 5;
     private const int JpegQuality = 82;
+    private const double MinimumSnapshotBrightness = 18;
+    private const string ClipSkippedDueToLoadError = "EventClipSkippedDueToLoad";
 
     private readonly CameraEventStore _store;
     private readonly string _sourceName;
@@ -31,22 +34,34 @@ public sealed class EventRecordingService : IAsyncDisposable
             SingleReader = true,
             SingleWriter = false
         });
+    private readonly Channel<RecordingBuilder> _saveQueue = Channel.CreateBounded<RecordingBuilder>(
+        new BoundedChannelOptions(1)
+        {
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = true,
+            SingleWriter = false
+        });
     private readonly object _gate = new();
     private readonly List<EncodedFrame> _preEventFrames = [];
+    private readonly Dictionary<string, RecordingBuilder> _pendingRecordings = [];
     private readonly object _saveTasksGate = new();
     private readonly HashSet<Task> _saveTasks = [];
     private readonly Task _frameWorker;
+    private readonly Task _saveWorker;
     private DateTimeOffset _lastSampleAt = DateTimeOffset.MinValue;
     private RecordingBuilder? _activeRecording;
     private int _frameWidth;
     private int _frameHeight;
     private bool _disposed;
 
+    public event EventHandler? RecordsChanged;
+
     public EventRecordingService(CameraEventStore store, string sourceName)
     {
         _store = store;
         _sourceName = string.IsNullOrWhiteSpace(sourceName) ? "Camera" : sourceName.Trim();
         _frameWorker = Task.Run(ProcessFramesAsync);
+        _saveWorker = Task.Run(ProcessSaveQueueAsync);
     }
 
     public void ObserveFrame(FrameReadyEventArgs frame)
@@ -82,6 +97,7 @@ public sealed class EventRecordingService : IAsyncDisposable
         }
 
         RecordingBuilder? completedRecording = null;
+        var recordingStarted = false;
         lock (_gate)
         {
             if (_disposed)
@@ -100,11 +116,14 @@ public sealed class EventRecordingService : IAsyncDisposable
 
             if (_activeRecording is null)
             {
-                var recording = new RecordingBuilder(eventTime, eventTime + PostEventDuration, _sourceName);
+                var recording = new RecordingBuilder(
+                    Guid.NewGuid().ToString("N"), eventTime, eventTime + PostEventDuration, _sourceName);
                 recording.Triggers.Add(description.Trim());
                 recording.Frames.AddRange(_preEventFrames.Where(frame =>
                     frame.Timestamp >= eventTime - PreEventDuration && frame.Timestamp <= recording.Deadline));
                 _activeRecording = recording;
+                _pendingRecordings.Add(recording.Id, recording);
+                recordingStarted = true;
             }
             else
             {
@@ -122,6 +141,39 @@ public sealed class EventRecordingService : IAsyncDisposable
         if (completedRecording is not null)
         {
             ScheduleSave(completedRecording);
+        }
+
+        if (recordingStarted)
+        {
+            NotifyRecordsChanged();
+        }
+    }
+
+    private void NotifyRecordsChanged()
+    {
+        try
+        {
+            RecordsChanged?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception exception)
+        {
+            AppLogger.Warn($"Unable to refresh the event library: {exception.Message}");
+        }
+    }
+
+    public IReadOnlyList<CameraEventRecord> GetPendingRecords()
+    {
+        lock (_gate)
+        {
+            return _pendingRecordings.Values.Select(recording => new CameraEventRecord(
+                recording.Id,
+                recording.StartedAt,
+                recording.SourceName,
+                recording.Triggers.ToArray(),
+                null,
+                null,
+                0,
+                null)).ToArray();
         }
     }
 
@@ -151,6 +203,9 @@ public sealed class EventRecordingService : IAsyncDisposable
             ScheduleSave(unfinished);
         }
 
+        _saveQueue.Writer.TryComplete();
+        await _saveWorker.ConfigureAwait(false);
+
         while (true)
         {
             Task[] pendingSaves;
@@ -166,6 +221,7 @@ public sealed class EventRecordingService : IAsyncDisposable
 
             await Task.WhenAll(pendingSaves).ConfigureAwait(false);
         }
+
     }
 
     private async Task ProcessFramesAsync()
@@ -181,6 +237,14 @@ public sealed class EventRecordingService : IAsyncDisposable
             {
                 AppLogger.Error("Unable to encode a camera event frame", exception);
             }
+        }
+    }
+
+    private async Task ProcessSaveQueueAsync()
+    {
+        await foreach (var recording in _saveQueue.Reader.ReadAllAsync().ConfigureAwait(false))
+        {
+            SaveRecordingSafely(recording);
         }
     }
 
@@ -249,12 +313,15 @@ public sealed class EventRecordingService : IAsyncDisposable
                 rawFrame.Stride);
             using var bgr = new Mat();
             Cv2.CvtColor(bgra, bgr, ColorConversionCodes.BGRA2BGR);
+            using var gray = new Mat();
+            Cv2.CvtColor(bgr, gray, ColorConversionCodes.BGR2GRAY);
+            var meanBrightness = Cv2.Mean(gray).Val0;
             Cv2.ImEncode(
                 ".jpg",
                 bgr,
                 out var jpeg,
                 new ImageEncodingParam(ImwriteFlags.JpegQuality, JpegQuality));
-            return new EncodedFrame(jpeg, rawFrame.Width, rawFrame.Height, rawFrame.Timestamp);
+            return new EncodedFrame(jpeg, rawFrame.Width, rawFrame.Height, rawFrame.Timestamp, meanBrightness);
         }
         finally
         {
@@ -262,11 +329,55 @@ public sealed class EventRecordingService : IAsyncDisposable
         }
     }
 
+    private static EncodedFrame SelectSnapshotFrame(
+        IReadOnlyList<EncodedFrame> frames,
+        DateTimeOffset eventTimestamp)
+    {
+        var nearestFrame = frames
+            .MinBy(frame => Math.Abs((frame.Timestamp - eventTimestamp).TotalMilliseconds))!;
+        if (nearestFrame.MeanBrightness >= MinimumSnapshotBrightness)
+        {
+            return nearestFrame;
+        }
+
+        var eventWindowStart = eventTimestamp - SnapshotEventWindow;
+        var eventWindowEnd = eventTimestamp + SnapshotEventWindow;
+        var brighterEventFrame = frames
+            .Where(frame => frame.Timestamp >= eventWindowStart && frame.Timestamp <= eventWindowEnd)
+            .MaxBy(frame => frame.MeanBrightness);
+        if (brighterEventFrame?.MeanBrightness >= MinimumSnapshotBrightness)
+        {
+            return brighterEventFrame;
+        }
+
+        return frames.MaxBy(frame => frame.MeanBrightness)!;
+    }
+
     private void ScheduleSave(RecordingBuilder recording)
+    {
+        recording.DurationFrameCount = recording.Frames.Count;
+        if (_saveQueue.Writer.TryWrite(recording))
+        {
+            return;
+        }
+
+        if (recording.Frames.Count > 0)
+        {
+            var snapshot = SelectSnapshotFrame(recording.Frames, recording.StartedAt);
+            recording.Frames.Clear();
+            recording.Frames.Add(snapshot);
+        }
+
+        recording.ClipSkippedDueToLoad = true;
+        AppLogger.Warn("The event recording queue is full; saving this event's snapshot without a video clip.");
+        ScheduleSnapshotSave(recording);
+    }
+
+    private void ScheduleSnapshotSave(RecordingBuilder recording)
     {
         lock (_saveTasksGate)
         {
-            var saveTask = Task.Run(() => SaveRecording(recording));
+            var saveTask = Task.Run(() => SaveRecordingSafely(recording));
             _saveTasks.Add(saveTask);
             _ = saveTask.ContinueWith(
                 completedTask =>
@@ -282,9 +393,32 @@ public sealed class EventRecordingService : IAsyncDisposable
         }
     }
 
+    private void SaveRecordingSafely(RecordingBuilder recording)
+    {
+        try
+        {
+            SaveRecording(recording);
+        }
+        catch (Exception exception)
+        {
+            AppLogger.Error("Unable to save camera event recording", exception);
+            CompletePendingRecording(recording.Id);
+        }
+    }
+
+    private void CompletePendingRecording(string eventId)
+    {
+        lock (_gate)
+        {
+            _pendingRecordings.Remove(eventId);
+        }
+
+        NotifyRecordsChanged();
+    }
+
     private void SaveRecording(RecordingBuilder recording)
     {
-        var eventId = Guid.NewGuid().ToString("N");
+        var eventId = recording.Id;
         string? snapshotRelativePath = null;
         string? clipRelativePath = null;
         string? mediaError = null;
@@ -298,13 +432,11 @@ public sealed class EventRecordingService : IAsyncDisposable
         {
             if (orderedFrames.Length > 0)
             {
-                var snapshot = orderedFrames
-                    .OrderBy(frame => Math.Abs((frame.Timestamp - recording.StartedAt).TotalMilliseconds))
-                    .First();
+                var snapshot = SelectSnapshotFrame(orderedFrames, recording.StartedAt);
                 snapshotRelativePath = _store.CreateRelativeMediaPath(recording.StartedAt, eventId, ".jpg");
                 File.WriteAllBytes(_store.GetWritableMediaPath(snapshotRelativePath), snapshot.Jpeg);
 
-                if (orderedFrames.Length >= 2)
+                if (orderedFrames.Length >= 2 && !recording.ClipSkippedDueToLoad)
                 {
                     clipRelativePath = WriteClip(recording.StartedAt, eventId, orderedFrames);
                     if (clipRelativePath is null)
@@ -314,7 +446,9 @@ public sealed class EventRecordingService : IAsyncDisposable
                 }
                 else
                 {
-                    mediaError = "Not enough video frames were available; the snapshot was saved.";
+                    mediaError = recording.ClipSkippedDueToLoad
+                        ? ClipSkippedDueToLoadError
+                        : "Not enough video frames were available; the snapshot was saved.";
                 }
             }
             else
@@ -335,7 +469,7 @@ public sealed class EventRecordingService : IAsyncDisposable
             recording.Triggers.Distinct(StringComparer.Ordinal).ToArray(),
             snapshotRelativePath,
             clipRelativePath,
-            orderedFrames.Length / ClipFramesPerSecond,
+            recording.DurationFrameCount / ClipFramesPerSecond,
             mediaError);
         try
         {
@@ -344,6 +478,10 @@ public sealed class EventRecordingService : IAsyncDisposable
         catch (Exception exception)
         {
             AppLogger.Error("Unable to persist camera event metadata", exception);
+        }
+        finally
+        {
+            CompletePendingRecording(eventId);
         }
     }
 
@@ -435,14 +573,22 @@ public sealed class EventRecordingService : IAsyncDisposable
 
     private sealed record RawFrame(byte[] Pixels, int Width, int Height, int Stride, DateTimeOffset Timestamp);
 
-    private sealed record EncodedFrame(byte[] Jpeg, int Width, int Height, DateTimeOffset Timestamp);
+    private sealed record EncodedFrame(
+        byte[] Jpeg,
+        int Width,
+        int Height,
+        DateTimeOffset Timestamp,
+        double MeanBrightness);
 
-    private sealed class RecordingBuilder(DateTimeOffset startedAt, DateTimeOffset deadline, string sourceName)
+    private sealed class RecordingBuilder(string id, DateTimeOffset startedAt, DateTimeOffset deadline, string sourceName)
     {
+        public string Id { get; } = id;
         public DateTimeOffset StartedAt { get; } = startedAt;
         public DateTimeOffset Deadline { get; set; } = deadline;
         public string SourceName { get; } = sourceName;
         public List<string> Triggers { get; } = [];
         public List<EncodedFrame> Frames { get; } = [];
+        public int DurationFrameCount { get; set; }
+        public bool ClipSkippedDueToLoad { get; set; }
     }
 }

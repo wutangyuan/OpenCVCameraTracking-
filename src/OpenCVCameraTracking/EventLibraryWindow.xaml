@@ -17,7 +17,9 @@
                     </Grid.ColumnDefinitions>
                     <Border Width="96" Height="62" CornerRadius="4" ClipToBounds="True"
                             Background="{DynamicResource PreviewBackgroundBrush}">
-                        <Image Source="{Binding SnapshotUri}" Stretch="UniformToFill" />
+                        <Image Loaded="ThumbnailImage_OnLoaded" Unloaded="ThumbnailImage_OnUnloaded"
+                               DataContextChanged="ThumbnailImage_OnDataContextChanged"
+                               Stretch="UniformToFill" />
                     </Border>
                     <StackPanel Grid.Column="1" Margin="9,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="{Binding TimeText}" FontWeight="SemiBold" />
@@ -69,6 +71,9 @@
                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                 <Grid>
                     <ListBox x:Name="EventListBox" ItemTemplate="{StaticResource EventItemTemplate}"
+                             ScrollViewer.CanContentScroll="True"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
                              SelectionChanged="EventListBox_OnSelectionChanged" />
                     <TextBlock x:Name="EmptyEventsText" Text="{DynamicResource EventEmpty}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"

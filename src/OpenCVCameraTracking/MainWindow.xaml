@@ -196,10 +196,13 @@
                 </Border>
                 <Border x:Name="RestrictedZoneAlertBanner" Visibility="Collapsed"
                         HorizontalAlignment="Center" VerticalAlignment="Top" Margin="20,78,20,0"
-                        Background="{DynamicResource DangerMutedBrush}" BorderBrush="{DynamicResource DangerMutedBorderBrush}" BorderThickness="1"
-                        CornerRadius="8" Padding="22,11">
+                        Background="{DynamicResource DangerBrush}" BorderBrush="{DynamicResource DangerBorderBrush}" BorderThickness="2"
+                        CornerRadius="8" Padding="22,12">
+                    <Border.Effect>
+                        <DropShadowEffect Color="Black" BlurRadius="16" ShadowDepth="3" Opacity="0.7" />
+                    </Border.Effect>
                     <TextBlock x:Name="RestrictedZoneAlertText" Foreground="White" FontSize="20"
-                               FontWeight="Bold" />
+                               FontWeight="Bold" MaxWidth="620" TextWrapping="Wrap" TextAlignment="Center" />
                 </Border>
             </Grid>
         </Border>

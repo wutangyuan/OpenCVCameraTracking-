@@ -1,4 +1,5 @@
 using System.IO;
+using System.Globalization;
 using System.Text.Json;
 using OpenCVCameraTracking.Core.Logging;
 
@@ -18,6 +19,9 @@ public sealed class CameraEventStore
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private readonly object _gate = new();
+    private readonly object _orphanSweepGate = new();
+    private DateTime _lastOrphanSweepUtc = DateTime.MinValue;
+    private bool _orphanSweepScheduled;
 
     public string RootDirectory { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -28,12 +32,20 @@ public sealed class CameraEventStore
 
     public IReadOnlyList<CameraEventRecord> Load(int retentionDays)
     {
+        IReadOnlyList<CameraEventRecord> result;
         lock (_gate)
         {
             var records = ReadIndex();
-            RemoveExpiredLocked(records, retentionDays);
-            return records.OrderByDescending(record => record.Timestamp).ToArray();
+            var normalizedDays = NormalizeRetentionDays(retentionDays);
+            RemoveExpiredLocked(records, normalizedDays);
+            var cutoff = DateTimeOffset.UtcNow.AddDays(-normalizedDays);
+            result = records.Where(record => record.Timestamp >= cutoff)
+                .OrderByDescending(record => record.Timestamp)
+                .ToArray();
         }
+
+        ScheduleOrphanCleanup();
+        return result;
     }
 
     public void Append(CameraEventRecord record)
@@ -65,9 +77,10 @@ public sealed class CameraEventStore
                 DeleteMedia(record.SnapshotFile);
                 DeleteMedia(record.ClipFile);
             }
-
-            return true;
         }
+
+        ScheduleOrphanCleanup(force: true);
+        return true;
     }
 
     public string? ResolveMediaPath(string? relativePath)
@@ -136,39 +149,173 @@ public sealed class CameraEventStore
 
     private void RemoveExpiredLocked(List<CameraEventRecord> records, int retentionDays)
     {
-        var normalizedDays = retentionDays is 3 or 7 or 14 or 30 ? retentionDays : 7;
-        var cutoff = DateTimeOffset.UtcNow.AddDays(-normalizedDays);
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-retentionDays);
         var expired = records.Where(record => record.Timestamp < cutoff).ToArray();
         if (expired.Length == 0)
         {
             return;
         }
 
-        records.RemoveAll(record => record.Timestamp < cutoff);
+        var changed = false;
         foreach (var record in expired)
         {
-            DeleteMedia(record.SnapshotFile);
-            DeleteMedia(record.ClipFile);
+            var snapshotDeleted = DeleteMedia(record.SnapshotFile);
+            var clipDeleted = DeleteMedia(record.ClipFile);
+            if (snapshotDeleted && clipDeleted)
+            {
+                records.Remove(record);
+                changed = true;
+            }
         }
 
-        WriteIndex(records);
+        if (changed)
+        {
+            WriteIndex(records);
+        }
     }
 
-    private void DeleteMedia(string? relativePath)
+    private void CleanupOrphanedMediaLocked(IReadOnlyCollection<CameraEventRecord> records)
+    {
+        if (!Directory.Exists(RootDirectory))
+        {
+            return;
+        }
+
+        var referencedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var record in records)
+        {
+            AddReferencedPath(referencedPaths, record.SnapshotFile);
+            AddReferencedPath(referencedPaths, record.ClipFile);
+        }
+
+        var orphanCutoff = DateTime.UtcNow.AddDays(-1);
+        try
+        {
+            foreach (var dayDirectory in Directory.EnumerateDirectories(RootDirectory))
+            {
+                var directoryName = Path.GetFileName(dayDirectory);
+                if (!DateTime.TryParseExact(directoryName, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                        DateTimeStyles.None, out _) ||
+                    (File.GetAttributes(dayDirectory) & FileAttributes.ReparsePoint) != 0)
+                {
+                    continue;
+                }
+
+                foreach (var path in Directory.EnumerateFiles(dayDirectory))
+                {
+                    var extension = Path.GetExtension(path);
+                    if (!string.Equals(extension, ".jpg", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(extension, ".mp4", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(extension, ".avi", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0 ||
+                        referencedPaths.Contains(Path.GetFullPath(path)) ||
+                        File.GetLastWriteTimeUtc(path) >= orphanCutoff)
+                    {
+                        continue;
+                    }
+
+                    DeleteMedia(Path.GetRelativePath(RootDirectory, path));
+                }
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            AppLogger.Warn($"Unable to scan orphaned event media: {exception.Message}");
+        }
+    }
+
+    private void ScheduleOrphanCleanup(bool force = false)
+    {
+        lock (_orphanSweepGate)
+        {
+            if (_orphanSweepScheduled ||
+                (!force && DateTime.UtcNow - _lastOrphanSweepUtc < TimeSpan.FromHours(24)))
+            {
+                return;
+            }
+
+            _orphanSweepScheduled = true;
+            _lastOrphanSweepUtc = DateTime.UtcNow;
+        }
+
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                lock (_gate)
+                {
+                    var records = TryReadIndexForCleanup();
+                    if (records is not null)
+                    {
+                        CleanupOrphanedMediaLocked(records);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                AppLogger.Warn($"Unable to clean orphaned event media: {exception.Message}");
+            }
+            finally
+            {
+                lock (_orphanSweepGate)
+                {
+                    _orphanSweepScheduled = false;
+                }
+            }
+        });
+    }
+
+    private List<CameraEventRecord>? TryReadIndexForCleanup()
+    {
+        if (!File.Exists(IndexPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<CameraEventRecord>>(File.ReadAllText(IndexPath), JsonOptions);
+        }
+        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
+        {
+            AppLogger.Warn($"Skipping orphan cleanup because the event index could not be read: {exception.Message}");
+            return null;
+        }
+    }
+
+    private void AddReferencedPath(HashSet<string> paths, string? relativePath)
+    {
+        var path = ResolveMediaPath(relativePath);
+        if (path is not null)
+        {
+            paths.Add(path);
+        }
+    }
+
+    private bool DeleteMedia(string? relativePath)
     {
         var path = ResolveMediaPath(relativePath);
         if (path is null)
         {
-            return;
+            return true;
         }
 
         try
         {
             File.Delete(path);
+            return !File.Exists(path);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            AppLogger.Warn($"Unable to remove expired event media: {exception.Message}");
+            AppLogger.Warn($"Unable to remove event media; cleanup will be retried: {exception.Message}");
+            return false;
         }
     }
+
+    private static int NormalizeRetentionDays(int retentionDays) =>
+        retentionDays is 3 or 7 or 14 or 30 ? retentionDays : 7;
 }
